@@ -276,7 +276,7 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Global variables provided by environment or defaults
+        // Firebase Configuration (Provided by system environment)
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'neon-defend-extreme-v1';
         const firebaseConfig = JSON.parse(__firebase_config);
 
@@ -288,21 +288,26 @@
         const ctx = canvas.getContext('2d');
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        let user = null, isVip = false, globalCoins = 0, usedCodes = [], gameActive = false, selectedMapIdx = 0, selectedDiffVal = 'easy', ownedUnits = ['scout', 'sniper', 'boom', 'wall'];
+        // Global State
+        let user = null;
+        let isVip = false;
+        let globalCoins = 0;
+        let usedCodes = [];
+        let gameActive = false;
+        let selectedMapIdx = 0;
+        let selectedDiffVal = 'easy';
+        let ownedUnits = ['scout', 'sniper', 'boom', 'wall'];
         let temporaryUnits = []; 
         let questData = { progress: 0, lastReset: 0, completed: false };
         let gameState = { money: 2000, wave: 1, towers: [], health: 100, maxHealth: 100, isWaveActive: false, difficulty: 'easy', vipTimer: 0, repairsLeft: 2 };
         let enemies = [], projectiles = [], particles = [];
         let selectedPlacement = null, selectedTowerId = null, mousePos = { x: 0, y: 0 };
 
-        // --- MANDATORY FIRESTORE REPAIR ---
-        // Rule 1: Use specific path structure
-        // Rule 3: Guard with user check
-
+        // --- PERSISTENT STORAGE SYSTEM (FIRESTORE) ---
+        // Rule 1 & 3: Save to /artifacts/{appId}/users/{userId}/profile after Auth
         async function saveProfile() {
             if (!auth.currentUser) return;
             try {
-                // Correct path: /artifacts/{appId}/users/{userId}/profile
                 const userDocRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'profile');
                 await setDoc(userDocRef, { 
                     coins: globalCoins, 
@@ -313,11 +318,11 @@
                     temporaryUnits: temporaryUnits 
                 }, { merge: true });
             } catch(e) { 
-                console.error("Firebase Save Error:", e); 
+                console.error("Firebase Persistence Error:", e); 
             }
         }
 
-        // Auth initialization flow
+        // Initialize Auth and Load Data
         const initAuth = async () => {
             try {
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -326,7 +331,7 @@
                     await signInAnonymously(auth);
                 }
             } catch (error) {
-                console.error("Auth initialization failed:", error);
+                console.error("Authentication failed:", error);
             }
         };
 
@@ -345,21 +350,21 @@
                         questData = data.questData || { progress: 0, lastReset: 0, completed: false };
                         temporaryUnits = data.temporaryUnits || [];
                     } else {
+                        // Create initial profile for new device
                         await saveProfile();
                     }
                     checkQuestReset();
                     updateMenuUI();
                     renderInGameShop();
                 } catch (e) {
-                    console.error("Data Load Error:", e);
+                    console.error("Failed to load user progress:", e);
                 }
             }
         });
 
         initAuth();
 
-        // --- GAME LOGIC (KEPT ORIGINAL) ---
-
+        // --- GAME ASSETS & DATA ---
         function playSound(freq, type = 'sine', duration = 0.1, vol = 0.1) {
             try {
                 const osc = audioCtx.createOscillator();
@@ -377,6 +382,7 @@
         const playClick = () => playSound(800, 'square', 0.05, 0.05);
         const playUpgrade = () => { playSound(400, 'sine', 0.1); playSound(600, 'sine', 0.2, 0.1); };
 
+        // Loading Screen Logic
         window.addEventListener('load', () => {
             const bar = document.getElementById('loadingBar');
             let progress = 0;
@@ -431,6 +437,7 @@
             { id: 'boom_pro', name: 'BOOM (Match)', emoji: '💥', cost: 300, desc: 'Single match use.' }
         ];
 
+        // --- MENU ACTIONS ---
         window.selectMap = (i) => { playClick(); selectedMapIdx = i; document.querySelectorAll('.map-btn').forEach(b => b.classList.remove('selected')); document.getElementById('map'+i).classList.add('selected'); };
         window.selectDiff = (d) => { playClick(); selectedDiffVal = d; document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('selected')); document.getElementById('diff' + d.charAt(0).toUpperCase() + d.slice(1)).classList.add('selected'); };
         
@@ -535,6 +542,7 @@
 
         window.closeUpgradeMenu = () => { document.getElementById('upgradeMenu').classList.add('hidden'); selectedTowerId = null; };
 
+        // --- UI RENDERING ---
         function checkQuestReset() {
             const now = Date.now();
             const oneDay = 24 * 60 * 60 * 1000;
@@ -631,6 +639,7 @@
             setTimeout(() => { el.classList.add('opacity-0'); setTimeout(() => el.remove(), 300); }, 3000);
         }
 
+        // --- GAME ENGINE ---
         function resize() {
             const viewport = document.querySelector('.game-viewport');
             if (!viewport) return;
@@ -841,7 +850,7 @@
             globalCoins += enemy.isUltimate ? 100 : (enemy.isBoss ? 30 : 5); 
             updateUI(); 
             updateMenuUI();
-            saveProfile(); 
+            saveProfile(); // Persistent coin update
         }
 
         async function endGame(won) {
@@ -870,7 +879,7 @@
                 document.getElementById('resultTitle').style.color = "#ff003c"; 
                 document.getElementById('resultReward').innerText = "RETRY TO EARN COINS"; 
             }
-            temporaryUnits = [];
+            temporaryUnits = []; // Reset temporary match units
             await saveProfile(); 
             updateMenuUI(); 
             resize();
