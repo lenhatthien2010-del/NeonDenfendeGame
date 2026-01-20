@@ -276,21 +276,27 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Global variables provided by environment
+        // Firebase Configuration
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'neon-defend-extreme-v1';
-        let firebaseConfig, app, auth, db;
-        
-        try {
-            firebaseConfig = JSON.parse(__firebase_config);
-            app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-        } catch(e) { console.error("Firebase init failed:", e); }
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
+        // Canvas Setup
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        // Game State Variables
+        let user = null, isVip = false, globalCoins = 0, usedCodes = [], gameActive = false, selectedMapIdx = 0, selectedDiffVal = 'easy', ownedUnits = ['scout', 'sniper', 'boom', 'wall'];
+        let temporaryUnits = []; 
+        let questData = { progress: 0, lastReset: 0, completed: false };
+        let gameState = { money: 2000, wave: 1, towers: [], health: 100, maxHealth: 100, isWaveActive: false, difficulty: 'easy', vipTimer: 0, repairsLeft: 2 };
+        let enemies = [], projectiles = [], particles = [];
+        let selectedPlacement = null, selectedTowerId = null, mousePos = { x: 0, y: 0 };
+
+        // Helper Functions
         function playSound(freq, type = 'sine', duration = 0.1, vol = 0.1) {
             try {
                 const osc = audioCtx.createOscillator();
@@ -305,22 +311,13 @@
                 osc.stop(audioCtx.currentTime + duration);
             } catch(e) {}
         }
-
         const playClick = () => playSound(800, 'square', 0.05, 0.05);
         const playUpgrade = () => { playSound(400, 'sine', 0.1); playSound(600, 'sine', 0.2, 0.1); };
 
-        let user = null, isVip = false, globalCoins = 0, usedCodes = [], gameActive = false, selectedMapIdx = 0, selectedDiffVal = 'easy', ownedUnits = ['scout', 'sniper', 'boom', 'wall'];
-        let temporaryUnits = []; 
-        let questData = { progress: 0, lastReset: 0, completed: false };
-        let gameState = { money: 2000, wave: 1, towers: [], health: 100, maxHealth: 100, isWaveActive: false, difficulty: 'easy', vipTimer: 0, repairsLeft: 2 };
-        let enemies = [], projectiles = [], particles = [];
-        let selectedPlacement = null, selectedTowerId = null, mousePos = { x: 0, y: 0 };
-
-        // --- CORE DATA SAVING FUNCTION ---
+        // Core Persistence (Firestore) - RULE 1 & 3
         async function saveProfile() {
             if (!auth.currentUser || !db) return;
             try {
-                // RULE 1: Use strict paths
                 const userDocRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'profile');
                 await setDoc(userDocRef, { 
                     coins: globalCoins, 
@@ -328,23 +325,18 @@
                     ownedUnits: ownedUnits, 
                     usedCodes: usedCodes, 
                     questData: questData,
-                    temporaryUnits: temporaryUnits // Save temp units too just in case
+                    temporaryUnits: temporaryUnits 
                 }, { merge: true });
-            }
-            catch(e) { console.error("Save error:", e); }
+            } catch(e) { console.error("Save error:", e); }
         }
 
-        // --- AUTH & DATA LOADING ---
+        // Initialize Auth & Load Data
         const initAuth = async () => {
-            if (!auth) return;
-            try {
-                // RULE 3: Auth before queries
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch(e) { console.error("Auth error:", e); }
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+                await signInAnonymously(auth);
+            }
         };
         initAuth();
 
@@ -353,20 +345,18 @@
             if (!user) return;
             
             try {
-                // Fetch existing data
                 const userDocRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile');
                 const snap = await getDoc(userDocRef);
                 
                 if (snap.exists()) {
                     const data = snap.data(); 
-                    globalCoins = data.coins !== undefined ? data.coins : 0; 
+                    globalCoins = data.coins ?? 0; 
                     isVip = data.isVip || false; 
                     ownedUnits = data.ownedUnits || ['scout', 'sniper', 'boom', 'wall'];
                     usedCodes = data.usedCodes || [];
                     questData = data.questData || { progress: 0, lastReset: 0, completed: false };
                     temporaryUnits = data.temporaryUnits || [];
                 } else {
-                    // Initialize new profile
                     await saveProfile();
                 }
             } catch(e) { console.error("Data fetch error:", e); }
@@ -376,7 +366,7 @@
             renderInGameShop();
         });
 
-        // --- UI LOADING SCREEN ---
+        // UI & Loading
         window.addEventListener('DOMContentLoaded', () => {
             const bar = document.getElementById('loadingBar');
             let progress = 0;
@@ -386,13 +376,15 @@
             const updateLoading = () => {
                 const elapsed = Date.now() - startTime;
                 progress = Math.min((elapsed / duration) * 100, 100);
-                bar.style.width = progress + '%';
+                if (bar) bar.style.width = progress + '%';
                 if (progress < 100) requestAnimationFrame(updateLoading);
                 else {
                     setTimeout(() => {
                         const loader = document.getElementById('loadingScreen');
-                        loader.style.opacity = '0';
-                        setTimeout(() => loader.style.display = 'none', 800);
+                        if (loader) {
+                            loader.style.opacity = '0';
+                            setTimeout(() => loader.style.display = 'none', 800);
+                        }
                     }, 500);
                 }
             };
@@ -429,45 +421,10 @@
             { id: 'boom_pro', name: 'BOOM (Match)', emoji: '💥', cost: 300, desc: 'Single match use.' }
         ];
 
-        function checkQuestReset() {
-            const now = Date.now();
-            const oneDay = 24 * 60 * 60 * 1000;
-            if (now - questData.lastReset >= oneDay) {
-                questData.progress = 0;
-                questData.completed = false;
-                questData.lastReset = now;
-                saveProfile();
-            }
-            updateQuestUI();
-        }
-
-        function updateQuestUI() {
-            const bar = document.getElementById('questBar');
-            const progress = document.getElementById('questProgress');
-            const status = document.getElementById('questStatus');
-            const timer = document.getElementById('questResetTime');
-            
-            if (!bar) return;
-
-            bar.style.width = (questData.progress / 3 * 100) + '%';
-            progress.innerText = `${questData.progress} / 3`;
-            
-            if (questData.completed) {
-                status.innerText = "CLAIMED";
-                status.className = "text-[10px] font-bold text-green-500";
-            } else {
-                status.innerText = questData.progress >= 3 ? "READY" : "ACTIVE";
-                status.className = `text-[10px] font-bold ${questData.progress >= 3 ? 'text-cyan-400' : 'text-yellow-500'}`;
-            }
-
-            const timeLeft = (questData.lastReset + (24*60*60*1000)) - Date.now();
-            if (timeLeft <= 0) { checkQuestReset(); return; }
-            const h = Math.floor(timeLeft / 3600000);
-            const m = Math.floor((timeLeft % 3600000) / 60000);
-            timer.innerText = `Reset in: ${h}h ${m}m`;
-        }
-        setInterval(updateQuestUI, 60000);
-
+        // Global functions (window scope)
+        window.selectMap = (i) => { playClick(); selectedMapIdx = i; document.querySelectorAll('.map-btn').forEach(b => b.classList.remove('selected')); document.getElementById('map'+i).classList.add('selected'); };
+        window.selectDiff = (d) => { playClick(); selectedDiffVal = d; document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('selected')); document.getElementById('diff' + d.charAt(0).toUpperCase() + d.slice(1)).classList.add('selected'); };
+        
         window.toggleUnitShop = (show) => {
             playClick();
             document.getElementById('unitShopModal').style.display = show ? 'flex' : 'none';
@@ -516,6 +473,95 @@
             }
         };
 
+        window.applyCheat = async () => {
+            const input = document.getElementById('cheatCode');
+            const code = input.value.trim();
+            if (code.toLowerCase() === 'get3k') {
+                if (usedCodes.includes('get3k')) { showAlert("CODE ALREADY USED", "red"); return; }
+                globalCoins += 3000; usedCodes.push('get3k'); await saveProfile(); updateMenuUI(); showAlert("CHEAT ACTIVATED: +3000 NeonCoins!", "emerald");
+                input.value = ""; playUpgrade();
+            } else if (code === 'Neondefendev1') {
+                if (usedCodes.includes('neondefendev1')) { showAlert("CODE ALREADY USED", "red"); return; }
+                globalCoins += 500; usedCodes.push('neondefendev1'); await saveProfile(); updateMenuUI(); showAlert("CODE ACTIVATED: +500 NeonCoins!", "emerald");
+                input.value = ""; playUpgrade();
+            } else showAlert("INVALID CODE", "red");
+        };
+
+        window.buyVip = async () => {
+            playClick();
+            if (globalCoins >= 3000 && !isVip) { 
+                globalCoins -= 3000; 
+                isVip = true; 
+                await saveProfile(); 
+                updateMenuUI(); 
+                showAlert("VIP ACTIVATED", "emerald"); 
+                playUpgrade(); 
+            }
+            else showAlert("INSUFFICIENT COINS", "red");
+        };
+
+        window.startGame = () => {
+            playClick();
+            document.getElementById('mainMenu').classList.add('hidden'); 
+            document.getElementById('gameHud').classList.remove('hidden'); 
+            document.getElementById('gameShop').style.display = 'flex'; 
+            gameState.difficulty = selectedDiffVal; gameState.wave = 1; gameState.money = 2000; gameState.health = 100; gameState.towers = []; gameState.repairsLeft = 2;
+            enemies = []; projectiles = []; particles = [];
+            if (isVip) document.getElementById('repairBtn').classList.remove('hidden');
+            gameActive = true; 
+            updateUI(); 
+            renderInGameShop(); 
+            resize(); 
+            requestAnimationFrame(gameLoop);
+        };
+
+        window.repairCore = () => {
+            playClick();
+            if (gameState.repairsLeft > 0 && gameState.health < gameState.maxHealth) {
+                gameState.health = Math.min(gameState.maxHealth, gameState.health + 40); gameState.repairsLeft--;
+                document.getElementById('repairCount').innerText = gameState.repairsLeft; updateUI(); showAlert("SYSTEM REPAIRED", "emerald");
+                if (gameState.repairsLeft === 0) document.getElementById('repairBtn').classList.add('hidden');
+            }
+        };
+
+        window.closeUpgradeMenu = () => { document.getElementById('upgradeMenu').classList.add('hidden'); selectedTowerId = null; };
+
+        // Game Logic Helper functions
+        function checkQuestReset() {
+            const now = Date.now();
+            const oneDay = 24 * 60 * 60 * 1000;
+            if (now - questData.lastReset >= oneDay) {
+                questData.progress = 0;
+                questData.completed = false;
+                questData.lastReset = now;
+                saveProfile();
+            }
+            updateQuestUI();
+        }
+
+        function updateQuestUI() {
+            const bar = document.getElementById('questBar');
+            const progress = document.getElementById('questProgress');
+            const status = document.getElementById('questStatus');
+            const timer = document.getElementById('questResetTime');
+            if (!bar) return;
+            bar.style.width = (questData.progress / 3 * 100) + '%';
+            progress.innerText = `${questData.progress} / 3`;
+            if (questData.completed) {
+                status.innerText = "CLAIMED";
+                status.className = "text-[10px] font-bold text-green-500";
+            } else {
+                status.innerText = questData.progress >= 3 ? "READY" : "ACTIVE";
+                status.className = `text-[10px] font-bold ${questData.progress >= 3 ? 'text-cyan-400' : 'text-yellow-500'}`;
+            }
+            const timeLeft = (questData.lastReset + (24*60*60*1000)) - Date.now();
+            if (timeLeft <= 0) { checkQuestReset(); return; }
+            const h = Math.floor(timeLeft / 3600000);
+            const m = Math.floor((timeLeft % 3600000) / 60000);
+            timer.innerText = `Reset in: ${h}h ${m}m`;
+        }
+        setInterval(updateQuestUI, 60000);
+
         function renderUnitShop() {
             const list = document.getElementById('unitShopList');
             document.getElementById('shopCoins').innerText = globalCoins;
@@ -546,7 +592,8 @@
             const shop = document.getElementById('shop'); shop.innerHTML = "";
             const combinedUnits = Array.from(new Set([...ownedUnits, ...temporaryUnits]));
             combinedUnits.forEach(key => {
-                const t = towerData[key]; const card = document.createElement('div');
+                const t = towerData[key]; if(!t) return;
+                const card = document.createElement('div');
                 card.className = 'unit-card';
                 card.innerHTML = `<div class="text-xl">${t.emoji}</div><div class="flex flex-col text-center mt-0.5"><span class="text-[8px] font-bold text-cyan-400">${t.name}</span><span class="text-[10px] font-black text-yellow-500">$${Math.floor(isVip ? t.price*0.8 : t.price)}</span></div>`;
                 card.onclick = (e) => { 
@@ -577,41 +624,9 @@
             setTimeout(() => { el.classList.add('opacity-0'); setTimeout(() => el.remove(), 300); }, 3000);
         }
 
-        window.applyCheat = async () => {
-            const code = document.getElementById('cheatCode').value.trim();
-            const normalized = code.toLowerCase();
-            if (normalized === 'get3k') {
-                if (usedCodes.includes('get3k')) { showAlert("CODE ALREADY USED", "red"); return; }
-                globalCoins += 3000; usedCodes.push('get3k'); await saveProfile(); updateMenuUI(); showAlert("CHEAT ACTIVATED: +3000 NeonCoins!", "emerald");
-                document.getElementById('cheatCode').value = ""; playUpgrade();
-            } else if (code === 'Neondefendev1') {
-                if (usedCodes.includes('neondefendev1')) { showAlert("CODE ALREADY USED", "red"); return; }
-                globalCoins += 500; usedCodes.push('neondefendev1'); await saveProfile(); updateMenuUI(); showAlert("CODE ACTIVATED: +500 NeonCoins!", "emerald");
-                document.getElementById('cheatCode').value = ""; playUpgrade();
-            } else showAlert("INVALID CODE", "red");
-        };
-
-        window.selectMap = (i) => { playClick(); selectedMapIdx = i; document.querySelectorAll('.map-btn').forEach(b => b.classList.remove('selected')); document.getElementById('map'+i).classList.add('selected'); };
-        window.selectDiff = (d) => { playClick(); selectedDiffVal = d; document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('selected')); document.getElementById('diff' + d.charAt(0).toUpperCase() + d.slice(1)).classList.add('selected'); };
-        window.buyVip = async () => {
-            playClick();
-            if (globalCoins >= 3000 && !isVip) { globalCoins -= 3000; isVip = true; await saveProfile(); updateMenuUI(); showAlert("VIP ACTIVATED", "emerald"); playUpgrade(); }
-            else showAlert("INSUFFICIENT COINS", "red");
-        };
-
-        window.startGame = () => {
-            playClick();
-            document.getElementById('mainMenu').classList.add('hidden'); 
-            document.getElementById('gameHud').classList.remove('hidden'); 
-            document.getElementById('gameShop').style.display = 'flex'; 
-            gameState.difficulty = selectedDiffVal; gameState.wave = 1; gameState.money = 2000; gameState.health = 100; gameState.towers = []; gameState.repairsLeft = 2;
-            if (isVip) document.getElementById('repairBtn').classList.remove('hidden');
-            gameActive = true; updateUI(); renderInGameShop(); requestAnimationFrame(gameLoop);
-            resize(); 
-        };
-
         function resize() {
             const viewport = document.querySelector('.game-viewport');
+            if (!viewport) return;
             const availableHeight = viewport.clientHeight;
             const availableWidth = viewport.clientWidth;
             const internalW = 1200;
@@ -619,10 +634,7 @@
             const ratio = internalW / internalH;
             let w = availableWidth;
             let h = w / ratio;
-            if (h > availableHeight) {
-                h = availableHeight;
-                w = h * ratio;
-            }
+            if (h > availableHeight) { h = availableHeight; w = h * ratio; }
             canvas.style.width = `${w}px`;
             canvas.style.height = `${h}px`;
             canvas.width = internalW;
@@ -683,13 +695,7 @@
                         } 
                         else { tower.currentMaxHp += 200; tower.currentHp += 200; }
                         tower.totalInvested += tower.upgradeCost; 
-                        
-                        if (tower.upgradeMax) {
-                            tower.upgradeCost = Math.floor(tower.upgradeCost + (tower.upgradeMax - tower.upgradeInit)/2);
-                        } else {
-                            tower.upgradeCost = Math.floor(tower.upgradeCost * 1.5);
-                        }
-                        
+                        tower.upgradeCost = tower.upgradeMax ? Math.floor(tower.upgradeCost + (tower.upgradeMax - tower.upgradeInit)/2) : Math.floor(tower.upgradeCost * 1.5);
                         updateUI(); openUpgrade(tower, sx, sy); showAlert("SYSTEM UPGRADED", "emerald");
                     } else showAlert("NOT ENOUGH MONEY", "red");
                 };
@@ -697,20 +703,19 @@
             menu.style.left = `${Math.min(window.innerWidth-280, Math.max(20, sx-130))}px`; menu.style.top = `${Math.max(20, sy-220)}px`; menu.classList.remove('hidden');
             document.getElementById('sellBtn').onclick = () => { playClick(); gameState.money += sellPrice; gameState.towers = gameState.towers.filter(t => t.id !== tower.id); updateUI(); window.closeUpgradeMenu(); };
         }
-        window.closeUpgradeMenu = () => { document.getElementById('upgradeMenu').classList.add('hidden'); selectedTowerId = null; };
 
         function updateUI() { 
-            document.getElementById('money').innerText = Math.floor(gameState.money); 
-            document.getElementById('wave').innerText = gameState.wave; 
-            document.getElementById('healthBar').style.width = `${(gameState.health / gameState.maxHealth) * 100}%`; 
+            const moneyEl = document.getElementById('money');
+            const waveEl = document.getElementById('wave');
+            const healthBar = document.getElementById('healthBar');
+            if(moneyEl) moneyEl.innerText = Math.floor(gameState.money); 
+            if(waveEl) waveEl.innerText = gameState.wave; 
+            if(healthBar) healthBar.style.width = `${(gameState.health / gameState.maxHealth) * 100}%`; 
             
             const btn = document.getElementById('nextWaveBtn');
-            if (gameState.isWaveActive) {
-                btn.style.opacity = "0.5";
-                btn.style.pointerEvents = "none";
-            } else {
-                btn.style.opacity = "1";
-                btn.style.pointerEvents = "auto";
+            if (btn) {
+                btn.style.opacity = gameState.isWaveActive ? "0.5" : "1";
+                btn.style.pointerEvents = gameState.isWaveActive ? "none" : "auto";
             }
         }
 
@@ -730,38 +735,13 @@
             
             const itv = setInterval(() => {
                 if (!gameActive) { clearInterval(itv); return; }
-                
-                let hp;
-                if (isUltimateBoss) {
-                    hp = 25000 + (gameState.wave * 3000); 
-                } else {
-                    hp = (isBossWave ? 2000 : 80) + (gameState.wave * (isBossWave ? 1500 : 100));
-                }
-                
+                let hp = isUltimateBoss ? 25000 + (gameState.wave * 3000) : (isBossWave ? 2000 : 80) + (gameState.wave * (isBossWave ? 1500 : 100));
                 enemies.push({ 
-                    x:wps[0].x, 
-                    y:wps[0].y, 
-                    hp, 
-                    maxHp:hp, 
-                    baseSpd: (isBossWave ? 0.5 : 1.2) + (gameState.wave * 0.05), 
-                    wp:0, 
-                    isBoss:isBossWave, 
-                    isUltimate: isUltimateBoss,
-                    frozen: 0, 
-                    slowFactor: 1 
+                    x:wps[0].x, y:wps[0].y, hp, maxHp:hp, baseSpd: (isBossWave ? 0.5 : 1.2) + (gameState.wave * 0.05), 
+                    wp:0, isBoss:isBossWave, isUltimate: isUltimateBoss, frozen: 0, slowFactor: 1 
                 });
-                
                 if (++c >= (isBossWave ? 1 : totalEnemies)) clearInterval(itv);
             }, 800);
-        };
-
-        window.repairCore = () => {
-            playClick();
-            if (gameState.repairsLeft > 0 && gameState.health < gameState.maxHealth) {
-                gameState.health = Math.min(gameState.maxHealth, gameState.health + 40); gameState.repairsLeft--;
-                document.getElementById('repairCount').innerText = gameState.repairsLeft; updateUI(); showAlert("SYSTEM REPAIRED", "emerald");
-                if (gameState.repairsLeft === 0) document.getElementById('repairBtn').classList.add('hidden');
-            }
         };
 
         function gameLoop() {
@@ -784,47 +764,25 @@
 
             if (selectedPlacement) {
                 const t = towerData[selectedPlacement];
-                ctx.beginPath(); 
-                ctx.arc(mousePos.x, mousePos.y, t.range, 0, Math.PI*2);
-                ctx.shadowBlur = 30;
-                ctx.shadowColor = t.color;
-                ctx.fillStyle = t.color + "33"; 
-                ctx.fill(); 
-                ctx.strokeStyle = t.color; 
-                ctx.lineWidth = 3; 
-                ctx.setLineDash([10, 5]);
-                ctx.stroke();
-                ctx.setLineDash([]);
-                ctx.shadowBlur = 0;
+                ctx.beginPath(); ctx.arc(mousePos.x, mousePos.y, t.range, 0, Math.PI*2); ctx.shadowBlur = 30; ctx.shadowColor = t.color; ctx.fillStyle = t.color + "33"; ctx.fill(); 
+                ctx.strokeStyle = t.color; ctx.lineWidth = 3; ctx.setLineDash([10, 5]); ctx.stroke(); ctx.setLineDash([]); ctx.shadowBlur = 0;
             }
 
             for(let i=gameState.towers.length-1; i>=0; i--) {
                 const t = gameState.towers[i];
-                ctx.beginPath();
-                ctx.arc(t.x, t.y, t.range, 0, Math.PI * 2);
-                ctx.shadowBlur = selectedTowerId === t.id ? 40 : 20;
-                ctx.shadowColor = t.color;
-                ctx.fillStyle = t.color + "15"; 
-                ctx.fill();
-                ctx.strokeStyle = selectedTowerId === t.id ? t.color : t.color + "99"; 
-                ctx.lineWidth = selectedTowerId === t.id ? 4 : 2;
-                ctx.stroke();
-                ctx.shadowBlur = 0; 
-
+                ctx.beginPath(); ctx.arc(t.x, t.y, t.range, 0, Math.PI * 2); ctx.shadowBlur = selectedTowerId === t.id ? 40 : 20; ctx.shadowColor = t.color; ctx.fillStyle = t.color + "15"; ctx.fill();
+                ctx.strokeStyle = selectedTowerId === t.id ? t.color : t.color + "99"; ctx.lineWidth = selectedTowerId === t.id ? 4 : 2; ctx.stroke(); ctx.shadowBlur = 0; 
                 ctx.shadowBlur = 20; ctx.shadowColor = t.color; ctx.fillStyle = t.color; ctx.beginPath(); ctx.arc(t.x, t.y, 30, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
                 ctx.fillStyle = 'white'; ctx.font = 'bold 24px Arial'; ctx.textAlign = 'center'; ctx.fillText(t.emoji, t.x, t.y+8);
-                
                 if (t.type === 'wall') {
                     ctx.fillStyle = '#1e293b'; ctx.fillRect(t.x-25, t.y-45, 50, 6); ctx.fillStyle = '#10b981'; ctx.fillRect(t.x-25, t.y-45, (t.currentHp/t.currentMaxHp)*50, 6);
                     if (t.currentHp <= 0) { gameState.towers.splice(i,1); continue; }
                 } else if (t.isLaser) {
                     const target = enemies.find(e => Math.hypot(e.x-t.x, e.y-t.y) < t.range);
                     if (target) { ctx.strokeStyle = t.color; ctx.lineWidth = 4 + Math.sin(Date.now()*0.01)*2; ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(target.x, target.y); ctx.stroke(); target.hp -= t.currentDmg / 60; if (target.hp <= 0) handleKill(target); }
-                } else {
-                    if (++t.timer >= t.currentSpd) {
-                        const target = enemies.find(e => Math.hypot(e.x-t.x, e.y-t.y) < t.range);
-                        if (target) { projectiles.push({ x: t.x, y: t.y, target, color: t.color, dmg: t.currentDmg, spd: t.p_spd, type: t.type, isFreeze: t.isFreeze, level: t.level }); t.timer = 0; }
-                    }
+                } else if (++t.timer >= t.currentSpd) {
+                    const target = enemies.find(e => Math.hypot(e.x-t.x, e.y-t.y) < t.range);
+                    if (target) { projectiles.push({ x: t.x, y: t.y, target, color: t.color, dmg: t.currentDmg, spd: t.p_spd, type: t.type, isFreeze: t.isFreeze, level: t.level }); t.timer = 0; }
                 }
             }
 
@@ -834,31 +792,18 @@
                 else {
                     const wallHit = gameState.towers.find(t => t.type === 'wall' && Math.hypot(t.x-e.x, t.y-e.y) < 40);
                     if (wallHit) { 
-                        if (e.isUltimate) { wallHit.currentHp = 0; } 
+                        if (e.isUltimate) wallHit.currentHp = 0; 
                         else { wallHit.currentHp -= (e.isBoss ? 2 : 0.5); e.hp -= (wallHit.currentDmg / 40); }
                         if (e.hp <= 0) { handleKill(e, i); continue; } 
-                    } 
-                    else {
+                    } else {
                         const tar = wps[e.wp+1]; const d = Math.hypot(tar.x-e.x, tar.y-e.y); const moveSpd = e.baseSpd * e.slowFactor; e.x += (tar.x-e.x)/d * moveSpd; e.y += (tar.y-e.y)/d * moveSpd;
-                        if (d < 5 && ++e.wp >= wps.length-1) { 
-                            gameState.health -= (e.isUltimate ? 100 : (e.isBoss ? 40 : 10)); 
-                            enemies.splice(i,1); updateUI(); continue; 
-                        }
+                        if (d < 5 && ++e.wp >= wps.length-1) { gameState.health -= (e.isUltimate ? 100 : (e.isBoss ? 40 : 10)); enemies.splice(i,1); updateUI(); continue; }
                     }
                 }
-
-                if (e.isUltimate) {
-                    ctx.shadowBlur = 40; ctx.shadowColor = '#00f2ff';
-                    ctx.fillStyle = '#22d3ee';
-                    ctx.beginPath(); ctx.arc(e.x, e.y, 45, 0, Math.PI*2); ctx.fill();
-                    ctx.shadowBlur = 0;
-                } else {
-                    ctx.fillStyle = e.frozen > 0 ? '#00f2ff' : (e.isBoss ? '#fde047' : '#ff003c'); ctx.beginPath(); ctx.arc(e.x, e.y, e.isBoss ? 35 : 18, 0, Math.PI*2); ctx.fill();
-                }
-                
+                ctx.fillStyle = e.frozen > 0 ? '#00f2ff' : (e.isBoss || e.isUltimate ? '#fde047' : '#ff003c'); ctx.beginPath(); ctx.arc(e.x, e.y, e.isBoss || e.isUltimate ? 35 : 18, 0, Math.PI*2); ctx.fill();
                 const barW = (e.isUltimate ? 100 : (e.isBoss ? 80 : 40)); 
                 ctx.fillStyle = '#1e293b'; ctx.fillRect(e.x - barW/2, e.y - (e.isBoss || e.isUltimate ? 65 : 30), barW, 5); ctx.fillStyle = '#ff003c'; ctx.fillRect(e.x - barW/2, e.y - (e.isBoss || e.isUltimate ? 65 : 30), (e.hp / e.maxHp) * barW, 5);
-                if (e.slowFactor < 1) e.slowFactor += 0.005; if (e.slowFactor > 1) e.slowFactor = 1;
+                if (e.slowFactor < 1) e.slowFactor += 0.005;
             }
 
             for(let i=projectiles.length-1; i>=0; i--) {
@@ -889,7 +834,7 @@
             globalCoins += enemy.isUltimate ? 100 : (enemy.isBoss ? 30 : 5); 
             updateUI(); 
             updateMenuUI();
-            saveProfile(); // Persistent coin save
+            saveProfile(); 
         }
 
         async function endGame(won) {
@@ -906,22 +851,18 @@
                 if (gameState.difficulty === 'easy' && !questData.completed) {
                     questData.progress = Math.min(3, questData.progress + 1);
                     if (questData.progress >= 3) {
-                        questData.completed = true;
-                        globalCoins += 500;
+                        questData.completed = true; globalCoins += 500;
                         showAlert("DAILY QUEST COMPLETED: +500 NeonCoins!", "emerald");
                     }
                 }
                 document.getElementById('resultTitle').innerText = "MISSION SUCCESS"; 
                 document.getElementById('resultTitle').style.color = "#10b981"; 
                 document.getElementById('resultReward').innerText = `+${reward} NeonCoins RECEIVED`; 
-            } 
-            else { 
+            } else { 
                 document.getElementById('resultTitle').innerText = "SYSTEM BREACHED"; 
                 document.getElementById('resultTitle').style.color = "#ff003c"; 
                 document.getElementById('resultReward').innerText = "RETRY TO EARN COINS"; 
             }
-
-            // Clear temp units after match
             temporaryUnits = [];
             await saveProfile(); 
             updateMenuUI(); 
