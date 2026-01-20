@@ -271,60 +271,26 @@
         </div>
     </div>
 
-    <!-- SCRIPT SECTION (FIXED FOR INDEX.HTML COMPATIBILITY) -->
-    <script>
-        // Global variables for game logic
-        let globalCoins = 0;
-        let isVip = false;
-        let ownedUnits = ['scout', 'sniper', 'boom', 'wall'];
-        let usedCodes = [];
-        let questData = { progress: 0, lastReset: Date.now(), completed: false };
-        let temporaryUnits = [];
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'neon-defend-extreme-v1';
+        let firebaseConfig, app, auth, db;
         
-        const STORAGE_KEY = 'neon_defense_save_v1';
+        try {
+            firebaseConfig = JSON.parse(__firebase_config);
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        } catch(e) { console.error("Firebase init failed:", e); }
 
-        // STORAGE LOGIC (Lưu trữ bền vững trên localStorage)
-        function saveProfile() {
-            const data = {
-                globalCoins,
-                isVip,
-                ownedUnits,
-                usedCodes,
-                questData
-            };
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-            console.log("Profile Saved to LocalStorage");
-        }
-
-        function loadProfile() {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            if (saved) {
-                try {
-                    const data = JSON.parse(saved);
-                    globalCoins = data.globalCoins || 0;
-                    isVip = data.isVip || false;
-                    ownedUnits = data.ownedUnits || ['scout', 'sniper', 'boom', 'wall'];
-                    usedCodes = data.usedCodes || [];
-                    questData = data.questData || { progress: 0, lastReset: Date.now(), completed: false };
-                } catch(e) { console.error("Load failed", e); }
-            }
-        }
-
-        // Initialize audio and canvas
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        let audioCtx;
-        try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
-
-        // State Variables for Gameplay
-        let gameActive = false, selectedMapIdx = 0, selectedDiffVal = 'easy';
-        let gameState = { money: 2000, wave: 1, towers: [], health: 100, maxHealth: 100, isWaveActive: false, difficulty: 'easy', vipTimer: 0, repairsLeft: 2 };
-        let enemies = [], projectiles = [], particles = [];
-        let selectedPlacement = null, selectedTowerId = null, mousePos = { x: 0, y: 0 };
-
-        // Core UI helpers
+        
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playSound(freq, type = 'sine', duration = 0.1, vol = 0.1) {
-            if (!audioCtx) return;
             try {
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
@@ -338,19 +304,39 @@
                 osc.stop(audioCtx.currentTime + duration);
             } catch(e) {}
         }
+
         const playClick = () => playSound(800, 'square', 0.05, 0.05);
         const playUpgrade = () => { playSound(400, 'sine', 0.1); playSound(600, 'sine', 0.2, 0.1); };
 
-        function showAlert(msg, color="cyan") {
-            const alertContainer = document.getElementById('customAlert');
-            const el = document.createElement('div');
-            el.className = `px-6 py-2 rounded-full font-bold text-xs bg-slate-800 text-white border border-${color === 'red' ? 'red' : 'cyan'}-500/50 mb-2 shadow-lg transition-opacity duration-300`;
-            el.innerText = msg;
-            alertContainer.appendChild(el);
-            setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 3000);
-        }
+        let user = null, isVip = false, globalCoins = 0, usedCodes = [], gameActive = false, selectedMapIdx = 0, selectedDiffVal = 'easy', ownedUnits = ['scout', 'sniper', 'boom', 'wall'];
+        let temporaryUnits = []; 
+        let questData = { progress: 0, lastReset: Date.now(), completed: false };
+        let gameState = { money: 2000, wave: 1, towers: [], health: 100, maxHealth: 100, isWaveActive: false, difficulty: 'easy', vipTimer: 0, repairsLeft: 2 };
+        let enemies = [], projectiles = [], particles = [];
+        let selectedPlacement = null, selectedTowerId = null, mousePos = { x: 0, y: 0 };
 
-        // Game Data
+        window.addEventListener('DOMContentLoaded', () => {
+            const bar = document.getElementById('loadingBar');
+            let progress = 0;
+            const startTime = Date.now();
+            const duration = 2000; 
+
+            const updateLoading = () => {
+                const elapsed = Date.now() - startTime;
+                progress = Math.min((elapsed / duration) * 100, 100);
+                bar.style.width = progress + '%';
+                if (progress < 100) requestAnimationFrame(updateLoading);
+                else {
+                    setTimeout(() => {
+                        const loader = document.getElementById('loadingScreen');
+                        loader.style.opacity = '0';
+                        setTimeout(() => loader.style.display = 'none', 800);
+                    }, 500);
+                }
+            };
+            requestAnimationFrame(updateLoading);
+        });
+
         const mapWays = [
             [{x:-50,y:400}, {x:250,y:400}, {x:250,y:150}, {x:600,y:150}, {x:600,y:600}, {x:950,y:600}, {x:950,y:350}, {x:1250,y:350}],
             [{x:150,y:-50}, {x:150,y:600}, {x:500,y:600}, {x:500,y:200}, {x:850,y:200}, {x:850,y:950}]
@@ -381,10 +367,79 @@
             { id: 'boom_pro', name: 'BOOM (Match)', emoji: '💥', cost: 300, desc: 'Single match use.' }
         ];
 
-        // Global functions (Attached to window for HTML onclicks)
-        window.selectMap = (i) => { playClick(); selectedMapIdx = i; document.querySelectorAll('.map-btn').forEach(b => b.classList.remove('selected')); document.getElementById('map'+i).classList.add('selected'); };
-        window.selectDiff = (d) => { playClick(); selectedDiffVal = d; document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('selected')); document.getElementById('diff' + d.charAt(0).toUpperCase() + d.slice(1)).classList.add('selected'); };
-        
+        const initAuth = async () => {
+            if (!auth) return;
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token);
+                else await signInAnonymously(auth);
+            } catch(e) { console.error("Auth error:", e); }
+        };
+        initAuth();
+
+        if (auth) {
+            onAuthStateChanged(auth, async (u) => {
+                user = u; if (!user) return;
+                try {
+                    const snap = await getDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'data'));
+                    if (snap.exists()) {
+                        const data = snap.data(); 
+                        globalCoins = typeof data.coins !== 'undefined' ? data.coins : 0; 
+                        isVip = !!data.isVip; 
+                        ownedUnits = data.ownedUnits || ['scout', 'sniper', 'boom', 'wall'];
+                        usedCodes = data.usedCodes || [];
+                        questData = data.questData || { progress: 0, lastReset: Date.now(), completed: false };
+                    } else {
+                        await saveProfile();
+                    }
+                } catch(e) { console.error("Data fetch error:", e); }
+                checkQuestReset();
+                updateMenuUI();
+                renderInGameShop();
+            });
+        }
+
+        function checkQuestReset() {
+            const now = Date.now();
+            const oneDay = 24 * 60 * 60 * 1000;
+            if (now - questData.lastReset >= oneDay) {
+                questData.progress = 0;
+                questData.completed = false;
+                questData.lastReset = now;
+                saveProfile();
+            }
+            updateQuestUI();
+        }
+
+        function updateQuestUI() {
+            const bar = document.getElementById('questBar');
+            const progress = document.getElementById('questProgress');
+            const status = document.getElementById('questStatus');
+            const timer = document.getElementById('questResetTime');
+            
+            if (!bar || !progress) return;
+            
+            bar.style.width = (questData.progress / 3 * 100) + '%';
+            progress.innerText = `${questData.progress} / 3`;
+            
+            if (questData.completed) {
+                status.innerText = "CLAIMED";
+                status.className = "text-[10px] font-bold text-green-500";
+            } else {
+                status.innerText = questData.progress >= 3 ? "READY" : "ACTIVE";
+                status.className = `text-[10px] font-bold ${questData.progress >= 3 ? 'text-cyan-400' : 'text-yellow-500'}`;
+            }
+
+            const updateTimer = () => {
+                const timeLeft = (questData.lastReset + (24*60*60*1000)) - Date.now();
+                if (timeLeft <= 0) { checkQuestReset(); return; }
+                const h = Math.floor(timeLeft / 3600000);
+                const m = Math.floor((timeLeft % 3600000) / 60000);
+                timer.innerText = `Reset in: ${h}h ${m}m`;
+            };
+            updateTimer();
+        }
+        setInterval(updateQuestUI, 60000);
+
         window.toggleUnitShop = (show) => {
             playClick();
             document.getElementById('unitShopModal').style.display = show ? 'flex' : 'none';
@@ -397,63 +452,41 @@
             if (show) renderNormalShop();
         };
 
-        window.buyUnit = (id, cost) => {
+        window.buyUnit = async (id, cost) => {
             playClick();
             if (globalCoins >= cost && !ownedUnits.includes(id)) {
                 globalCoins -= cost;
                 ownedUnits.push(id);
-                saveProfile();
+                await saveProfile();
                 updateMenuUI();
                 renderUnitShop();
-                showAlert("UNIT PURCHASED", "emerald");
-            } else showAlert(ownedUnits.includes(id) ? "OWNED" : "NO COINS", "red");
+                renderInGameShop();
+                showAlert("UNIT PURCHASED PERMANENTLY", "purple");
+                playUpgrade();
+            } else if (ownedUnits.includes(id)) {
+                showAlert("ALREADY OWNED", "white");
+            } else {
+                showAlert("INSUFFICIENT COINS", "red");
+            }
         };
 
-        window.buyNormalUnit = (id, cost) => {
+        window.buyNormalUnit = async (id, cost) => {
             playClick();
             if (globalCoins >= cost && !temporaryUnits.includes(id) && !ownedUnits.includes(id)) {
                 globalCoins -= cost;
                 temporaryUnits.push(id);
-                saveProfile();
+                await saveProfile();
                 updateMenuUI();
                 renderNormalShop();
-                showAlert("READY FOR MATCH", "cyan");
-            } else showAlert("ALREADY READY", "red");
-        };
-
-        window.applyCheat = () => {
-            const code = document.getElementById('cheatCode').value.trim().toLowerCase();
-            if (code === 'get3k' && !usedCodes.includes('get3k')) {
-                globalCoins += 3000; usedCodes.push('get3k'); saveProfile(); updateMenuUI(); showAlert("+3000 COINS", "emerald");
-            } else if (code === 'neondefendev1' && !usedCodes.includes('neondefendev1')) {
-                globalCoins += 500; usedCodes.push('neondefendev1'); saveProfile(); updateMenuUI(); showAlert("+500 COINS", "emerald");
-            } else showAlert("INVALID OR USED", "red");
-            document.getElementById('cheatCode').value = "";
-        };
-
-        window.buyVip = () => {
-            if (globalCoins >= 3000 && !isVip) {
-                globalCoins -= 3000; isVip = true; saveProfile(); updateMenuUI(); showAlert("VIP ACTIVE", "emerald");
-            } else showAlert("NO COINS", "red");
-        };
-
-        // UI Rendering Logic
-        function updateMenuUI() {
-            document.getElementById('globalCoins').innerText = globalCoins;
-            const vipLabel = document.getElementById('vipLabel');
-            if (isVip) {
-                vipLabel.innerText = "👑 VIP"; vipLabel.classList.add('vip-rank');
-                document.getElementById('buyVipBtn').style.display = 'none';
+                renderInGameShop();
+                showAlert("UNIT READY FOR THIS MATCH", "white");
+                playUpgrade();
+            } else if (temporaryUnits.includes(id) || ownedUnits.includes(id)) {
+                showAlert("ALREADY AVAILABLE", "white");
+            } else {
+                showAlert("INSUFFICIENT COINS", "red");
             }
-            updateQuestUI();
-        }
-
-        function updateQuestUI() {
-            const bar = document.getElementById('questBar');
-            const progTxt = document.getElementById('questProgress');
-            if(bar) bar.style.width = (questData.progress / 3 * 100) + '%';
-            if(progTxt) progTxt.innerText = `${questData.progress} / 3`;
-        }
+        };
 
         function renderUnitShop() {
             const list = document.getElementById('unitShopList');
@@ -461,10 +494,10 @@
             list.innerHTML = "";
             shopItems.forEach(item => {
                 const owned = ownedUnits.includes(item.id);
-                list.innerHTML += `<div class="bg-slate-900 p-4 rounded-2xl flex justify-between items-center border border-white/5">
-                    <div><div class="font-bold text-purple-400">${item.name} ${item.emoji}</div><div class="text-[9px] text-slate-500">${item.desc}</div></div>
-                    <button onclick="buyUnit('${item.id}', ${item.cost})" class="px-4 py-2 rounded-xl text-[10px] ${owned ? 'bg-slate-800' : 'bg-purple-600'}">${owned ? 'OWNED' : item.cost}</button>
-                </div>`;
+                const div = document.createElement('div');
+                div.className = "bg-slate-900 p-4 rounded-2xl flex justify-between items-center border border-white/5";
+                div.innerHTML = `<div class="flex items-center gap-4"><div class="text-3xl">${item.emoji}</div><div><div class="font-bold text-purple-400">${item.name}</div><div class="text-[9px] text-slate-500">${item.desc}</div></div></div><button onclick="window.buyUnit('${item.id}', ${item.cost})" ${owned ? 'disabled' : ''} class="px-4 py-2 rounded-xl text-[10px] font-bold ${owned ? 'bg-slate-800 text-slate-500' : 'bg-purple-600 text-white'}">${owned ? 'OWNED' : item.cost + ' COINS'}</button>`;
+                list.appendChild(div);
             });
         }
 
@@ -473,210 +506,413 @@
             document.getElementById('normalShopCoins').innerText = globalCoins;
             list.innerHTML = "";
             normalShopItems.forEach(item => {
-                const ready = ownedUnits.includes(item.id) || temporaryUnits.includes(item.id);
-                list.innerHTML += `<div class="bg-slate-900 p-4 rounded-2xl flex justify-between items-center border border-white/5">
-                    <div><div class="font-bold text-white">${item.name} ${item.emoji}</div><div class="text-[9px] text-slate-400">${item.desc}</div></div>
-                    <button onclick="buyNormalUnit('${item.id}', ${item.cost})" class="px-4 py-2 rounded-xl text-[10px] ${ready ? 'bg-slate-800' : 'bg-white text-black'}">${ready ? 'READY' : item.cost}</button>
-                </div>`;
+                const alreadyAvailable = ownedUnits.includes(item.id) || temporaryUnits.includes(item.id);
+                const div = document.createElement('div');
+                div.className = "bg-slate-900 p-4 rounded-2xl flex justify-between items-center border border-white/10";
+                div.innerHTML = `<div class="flex items-center gap-4"><div class="text-3xl">${item.emoji}</div><div><div class="font-bold text-white">${item.name}</div><div class="text-[9px] text-slate-400">${item.desc}</div></div></div><button onclick="window.buyNormalUnit('${item.id}', ${item.cost})" ${alreadyAvailable ? 'disabled' : ''} class="px-4 py-2 rounded-xl text-[10px] font-bold ${alreadyAvailable ? 'bg-slate-800 text-slate-500' : 'bg-white text-black'}">${alreadyAvailable ? 'READY' : item.cost + ' COINS'}</button>`;
+                list.appendChild(div);
             });
         }
 
         function renderInGameShop() {
-            const shop = document.getElementById('shop');
-            shop.innerHTML = "";
-            const available = [...new Set([...ownedUnits, ...temporaryUnits])];
-            available.forEach(key => {
-                const t = towerData[key];
-                const price = Math.floor(isVip ? t.price * 0.8 : t.price);
-                const div = document.createElement('div');
-                div.className = 'unit-card';
-                div.innerHTML = `<div class="text-xl">${t.emoji}</div><span class="text-[8px] font-bold text-cyan-400">${t.name}</span><span class="text-[10px] text-yellow-500">$${price}</span>`;
-                div.onclick = () => {
-                    selectedPlacement = key;
-                    document.querySelectorAll('.unit-card').forEach(c => c.classList.remove('active'));
-                    div.classList.add('active');
+            const shop = document.getElementById('shop'); shop.innerHTML = "";
+            const combinedUnits = Array.from(new Set([...ownedUnits, ...temporaryUnits]));
+            combinedUnits.forEach(key => {
+                const t = towerData[key]; 
+                if(!t) return;
+                const card = document.createElement('div');
+                card.className = 'unit-card';
+                card.innerHTML = `<div class="text-xl">${t.emoji}</div><div class="flex flex-col text-center mt-0.5"><span class="text-[8px] font-bold text-cyan-400">${t.name}</span><span class="text-[10px] font-black text-yellow-500">$${Math.floor(isVip ? t.price*0.8 : t.price)}</span></div>`;
+                card.onclick = (e) => { 
+                    playClick(); e.stopPropagation(); selectedPlacement = key; selectedTowerId = null;
+                    document.querySelectorAll('.unit-card').forEach(c => c.classList.remove('active')); card.classList.add('active'); 
                 };
-                shop.appendChild(div);
+                shop.appendChild(card);
             });
         }
 
-        // Gameplay Logic
-        window.startGame = () => {
-            playClick();
-            document.getElementById('mainMenu').classList.add('hidden');
-            document.getElementById('gameHud').classList.remove('hidden');
-            document.getElementById('gameShop').style.display = 'flex';
-            
-            gameState = { money: 2000, wave: 1, towers: [], health: 100, maxHealth: 100, isWaveActive: false, difficulty: selectedDiffVal, vipTimer: 0, repairsLeft: 2 };
-            enemies = []; projectiles = [];
-            gameActive = true;
-            
-            if (isVip) document.getElementById('repairBtn').classList.remove('hidden');
-            renderInGameShop();
-            updateUI();
-            resize();
-            requestAnimationFrame(gameLoop);
-        };
-
-        function updateUI() {
-            document.getElementById('money').innerText = Math.floor(gameState.money);
-            document.getElementById('wave').innerText = gameState.wave;
-            document.getElementById('healthBar').style.width = gameState.health + '%';
+        function updateMenuUI() {
+            const globalCoinsEl = document.getElementById('globalCoins');
+            if(globalCoinsEl) globalCoinsEl.innerText = globalCoins;
+            const vipLabel = document.getElementById('vipLabel');
+            if (isVip && vipLabel) {
+                vipLabel.innerHTML = "👑 VIP Rank"; vipLabel.className = "text-sm font-bold vip-rank";
+                const buyVipBtn = document.getElementById('buyVipBtn');
+                if(buyVipBtn) buyVipBtn.style.display = 'none';
+            }
+            updateQuestUI();
         }
 
-        // (Keeping original Tower/Enemy logic from your file...)
+        function showAlert(msg, color="cyan") {
+            const alert = document.getElementById('customAlert');
+            const el = document.createElement('div');
+            const colorClass = color === "white" ? "slate-100" : (color === "cyan" ? "cyan" : color);
+            el.className = `px-6 py-2 rounded-full font-bold text-xs bg-${colorClass}-500/20 text-${colorClass}-400 border border-${colorClass}-500/30 mb-2 shadow-lg transition-opacity duration-300`;
+            if (color === "white") el.className = `px-6 py-2 rounded-full font-bold text-xs bg-slate-100/10 text-white border border-white/20 mb-2 shadow-lg transition-opacity duration-300`;
+            el.innerText = msg; alert.appendChild(el);
+            setTimeout(() => { el.classList.add('opacity-0'); setTimeout(() => el.remove(), 300); }, 3000);
+        }
+
+        window.applyCheat = async () => {
+            const code = document.getElementById('cheatCode').value.trim();
+            const normalized = code.toLowerCase();
+            if (normalized === 'get3k') {
+                if (usedCodes.includes('get3k')) { showAlert("CODE ALREADY USED", "red"); return; }
+                globalCoins += 3000; usedCodes.push('get3k'); await saveProfile(); updateMenuUI(); showAlert("CHEAT ACTIVATED: +3000 NeonCoins!", "emerald");
+                document.getElementById('cheatCode').value = ""; playUpgrade();
+            } else if (code === 'Neondefendev1') {
+                if (usedCodes.includes('neondefendev1')) { showAlert("CODE ALREADY USED", "red"); return; }
+                globalCoins += 500; usedCodes.push('neondefendev1'); await saveProfile(); updateMenuUI(); showAlert("CODE ACTIVATED: +500 NeonCoins!", "emerald");
+                document.getElementById('cheatCode').value = ""; playUpgrade();
+            } else showAlert("INVALID CODE", "red");
+        };
+
+        window.selectMap = (i) => { playClick(); selectedMapIdx = i; document.querySelectorAll('.map-btn').forEach(b => b.classList.remove('selected')); document.getElementById('map'+i).classList.add('selected'); };
+        window.selectDiff = (d) => { playClick(); selectedDiffVal = d; document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('selected')); document.getElementById('diff' + d.charAt(0).toUpperCase() + d.slice(1)).classList.add('selected'); };
+        window.buyVip = async () => {
+            playClick();
+            if (globalCoins >= 3000 && !isVip) { globalCoins -= 3000; isVip = true; await saveProfile(); updateMenuUI(); showAlert("VIP ACTIVATED", "emerald"); playUpgrade(); }
+            else showAlert("INSUFFICIENT COINS", "red");
+        };
+
+        async function saveProfile() {
+            if (!user || !db) return;
+            try { 
+                await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'data'), { 
+                    coins: globalCoins, 
+                    isVip: isVip, 
+                    ownedUnits: ownedUnits, 
+                    usedCodes: usedCodes, 
+                    questData: questData 
+                }, { merge: true }); 
+            }
+            catch(e) { console.error("Save error:", e); }
+        }
+
+        window.startGame = () => {
+            playClick();
+            document.getElementById('mainMenu').classList.add('hidden'); 
+            document.getElementById('gameHud').classList.remove('hidden'); 
+            document.getElementById('gameShop').style.display = 'flex'; 
+            gameState.difficulty = selectedDiffVal; gameState.wave = 1; gameState.money = 2000; gameState.health = 100; gameState.towers = []; gameState.repairsLeft = 2;
+            if (isVip) document.getElementById('repairBtn').classList.remove('hidden');
+            gameActive = true; updateUI(); renderInGameShop(); requestAnimationFrame(gameLoop);
+            resize(); 
+        };
+
+        function resize() {
+            const viewport = document.querySelector('.game-viewport');
+            const availableHeight = viewport.clientHeight;
+            const availableWidth = viewport.clientWidth;
+            const internalW = 1200;
+            const internalH = 800;
+            const ratio = internalW / internalH;
+            let w = availableWidth;
+            let h = w / ratio;
+            if (h > availableHeight) {
+                h = availableHeight;
+                w = h * ratio;
+            }
+            canvas.style.width = `${w}px`;
+            canvas.style.height = `${h}px`;
+            canvas.width = internalW;
+            canvas.height = internalH;
+        }
+        window.addEventListener('resize', resize);
+
+        canvas.addEventListener('pointermove', (e) => {
+            const rect = canvas.getBoundingClientRect(); mousePos.x = (e.clientX - rect.left) * (canvas.width / rect.width); mousePos.y = (e.clientY - rect.top) * (canvas.height / rect.height);
+        });
+
+        canvas.addEventListener('pointerdown', (e) => {
+            const rect = canvas.getBoundingClientRect(); const x = (e.clientX - rect.left) * (canvas.width / rect.width); const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+            if (selectedPlacement) {
+                const t = towerData[selectedPlacement]; const realPrice = Math.floor(isVip ? t.price * 0.8 : t.price);
+                if (gameState.money >= realPrice) {
+                    const isWall = t.type === 'wall'; const onPath = isNearPath(x, y, 40); let canPlace = isWall ? onPath : !onPath;
+                    const onTower = gameState.towers.some(ot => Math.hypot(ot.x-x, ot.y-y) < 55);
+                    if (canPlace && !onTower) {
+                        gameState.towers.push({ ...t, x, y, level: 0, upgradeCost: t.upgradeInit, timer: 0, id: Date.now(), totalInvested: realPrice, currentDmg: t.dmg, currentSpd: t.spd, currentHp: t.hp || 0, currentMaxHp: t.hp || 0 });
+                        gameState.money -= realPrice; updateUI(); selectedPlacement = null; document.querySelectorAll('.unit-card').forEach(c => c.classList.remove('active')); playClick();
+                    } else showAlert("INVALID PLACEMENT", "red");
+                } else showAlert("INSUFFICIENT FUNDS", "red");
+                return;
+            }
+            const clicked = gameState.towers.find(t => Math.hypot(t.x - x, t.y - y) < 40);
+            if (clicked) { playClick(); selectedTowerId = clicked.id; openUpgrade(clicked, e.clientX, e.clientY); }
+            else window.closeUpgradeMenu();
+        });
+
         function isNearPath(x, y, dist) {
             const wps = mapWays[selectedMapIdx];
             for (let i=0; i < wps.length-1; i++) {
-                const p1 = wps[i], p2 = wps[i+1];
-                const L2 = Math.pow(p2.x-p1.x, 2) + Math.pow(p2.y-p1.y, 2); if (L2 === 0) continue;
-                let t = ((x-p1.x)*(p2.x-p1.x) + (y-p1.y)*(p2.y-p1.y)) / L2;
-                t = Math.max(0, Math.min(1, t));
-                const dx = x - (p1.x + t*(p2.x-p1.x)), dy = y - (p1.y + t*(p2.y-p1.y));
-                if (Math.sqrt(dx*dx + dy*dy) < dist) return true;
+                const p1 = wps[i], p2 = wps[i+1]; const L2 = Math.pow(p2.x-p1.x, 2) + Math.pow(p2.y-p1.y, 2); if (L2 === 0) continue;
+                let t = ((x-p1.x)*(p2.x-p1.x) + (y-p1.y)*(p2.y-p1.y)) / L2; t = Math.max(0, Math.min(1, t));
+                const dx = x - (p1.x + t*(p2.x-p1.x)), dy = y - (p1.y + t*(p2.y-p1.y)); if (Math.sqrt(dx*dx + dy*dy) < dist) return true;
             }
             return false;
         }
 
-        canvas.addEventListener('pointerdown', (e) => {
-            const rect = canvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-            const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-
-            if (selectedPlacement) {
-                const t = towerData[selectedPlacement];
-                const price = Math.floor(isVip ? t.price * 0.8 : t.price);
-                if (gameState.money >= price) {
-                    const isWall = t.type === 'wall';
-                    const onPath = isNearPath(x, y, 40);
-                    if ((isWall && onPath) || (!isWall && !onPath)) {
-                        gameState.towers.push({...t, x, y, id: Date.now(), level: 0, timer: 0, upgradeCost: t.upgradeInit, totalInvested: price, currentDmg: t.dmg, currentSpd: t.spd, currentHp: t.hp || 0, currentMaxHp: t.hp || 0});
-                        gameState.money -= price; updateUI(); selectedPlacement = null;
-                        document.querySelectorAll('.unit-card').forEach(c => c.classList.remove('active'));
-                    }
-                }
-                return;
-            }
-            const clicked = gameState.towers.find(t => Math.hypot(t.x-x, t.y-y) < 40);
-            if (clicked) openUpgrade(clicked, e.clientX, e.clientY);
-            else window.closeUpgradeMenu();
-        });
-
         function openUpgrade(tower, sx, sy) {
-            const menu = document.getElementById('upgradeMenu');
-            document.getElementById('unitName').innerText = tower.name;
-            document.getElementById('upgradeLevel').innerText = `Level ${tower.level}/3`;
-            const sellValue = Math.floor(tower.totalInvested * 0.6);
-            document.getElementById('sellValue').innerText = `$${sellValue}`;
-            
-            document.getElementById('upgradeBtn').onclick = () => {
-                if (gameState.money >= tower.upgradeCost && tower.level < 3) {
-                    gameState.money -= tower.upgradeCost;
-                    tower.level++;
-                    tower.totalInvested += tower.upgradeCost;
-                    tower.upgradeCost = Math.floor(tower.upgradeCost * 1.5);
-                    tower.currentDmg *= 1.3; tower.range += 20;
-                    updateUI(); openUpgrade(tower, sx, sy);
-                }
-            };
-            document.getElementById('sellBtn').onclick = () => {
-                gameState.money += sellValue;
-                gameState.towers = gameState.towers.filter(t => t.id !== tower.id);
-                updateUI(); window.closeUpgradeMenu();
-            };
-
-            menu.style.left = sx + 'px'; menu.style.top = (sy - 100) + 'px';
-            menu.classList.remove('hidden');
+            const menu = document.getElementById('upgradeMenu'); document.getElementById('unitName').innerText = tower.name;
+            let statsText = tower.type === 'wall' ? `Reflect: ${tower.currentDmg} | HP: ${Math.floor(tower.currentHp)}` : `Dmg: ${tower.currentDmg} | Spd: ${(tower.currentSpd/60).toFixed(1)}s`;
+            document.getElementById('unitStats').innerText = statsText; document.getElementById('upgradeLevel').innerText = `Upgrades: ${tower.level}/3`;
+            const sellPrice = Math.floor(tower.totalInvested * 0.6); document.getElementById('sellValue').innerText = `$${sellPrice}`;
+            const upgradeBtn = document.getElementById('upgradeBtn');
+            if (tower.level >= 3) { upgradeBtn.innerText = "MAX POWER"; upgradeBtn.onclick = null; }
+            else {
+                upgradeBtn.innerText = `UPGRADE ($${tower.upgradeCost})`;
+                upgradeBtn.onclick = () => {
+                    if (gameState.money >= tower.upgradeCost) {
+                        playUpgrade(); gameState.money -= tower.upgradeCost; tower.level++; 
+                        if (tower.type !== 'wall') { 
+                            tower.currentDmg = Math.floor(tower.currentDmg + (tower.maxDmg - tower.dmg)/3); 
+                            tower.currentSpd = Math.max(tower.maxSpd, tower.currentSpd - (tower.spd - tower.maxSpd)/3); 
+                            tower.range += 30; 
+                        } 
+                        else { tower.currentMaxHp += 200; tower.currentHp += 200; }
+                        tower.totalInvested += tower.upgradeCost; 
+                        
+                        if (tower.upgradeMax) {
+                            tower.upgradeCost = Math.floor(tower.upgradeCost + (tower.upgradeMax - tower.upgradeInit)/2);
+                        } else {
+                            tower.upgradeCost = Math.floor(tower.upgradeCost * 1.5);
+                        }
+                        
+                        updateUI(); openUpgrade(tower, sx, sy); showAlert("SYSTEM UPGRADED", "emerald");
+                    } else showAlert("NOT ENOUGH MONEY", "red");
+                };
+            }
+            menu.style.left = `${Math.min(window.innerWidth-280, Math.max(20, sx-130))}px`; menu.style.top = `${Math.max(20, sy-220)}px`; menu.classList.remove('hidden');
+            document.getElementById('sellBtn').onclick = () => { playClick(); gameState.money += sellPrice; gameState.towers = gameState.towers.filter(t => t.id !== tower.id); updateUI(); window.closeUpgradeMenu(); };
         }
-        window.closeUpgradeMenu = () => document.getElementById('upgradeMenu').classList.add('hidden');
+        window.closeUpgradeMenu = () => { document.getElementById('upgradeMenu').classList.add('hidden'); selectedTowerId = null; };
+
+        function updateUI() { 
+            document.getElementById('money').innerText = Math.floor(gameState.money); 
+            document.getElementById('wave').innerText = gameState.wave; 
+            document.getElementById('healthBar').style.width = `${(gameState.health / gameState.maxHealth) * 100}%`; 
+            
+            const btn = document.getElementById('nextWaveBtn');
+            if (gameState.isWaveActive) {
+                btn.style.opacity = "0.5";
+                btn.style.pointerEvents = "none";
+            } else {
+                btn.style.opacity = "1";
+                btn.style.pointerEvents = "auto";
+            }
+        }
 
         document.getElementById('nextWaveBtn').onclick = () => {
-            if (gameState.isWaveActive) return;
-            gameState.isWaveActive = true;
-            let count = 0; let total = 10 + gameState.wave * 2;
+            playClick(); if (gameState.isWaveActive) return;
+            const maxWaves = gameState.difficulty === 'easy' ? 20 : 35; 
+            if (gameState.wave > maxWaves) { endGame(true); return; }
+            
+            gameState.isWaveActive = true; 
+            updateUI(); 
+            
+            let c = 0; 
+            const isBossWave = (gameState.wave % 5 === 0);
+            const isUltimateBoss = (gameState.wave === 20 && gameState.difficulty === 'easy');
+            let totalEnemies = 8 + gameState.wave * 2; 
             const wps = mapWays[selectedMapIdx];
-            const spawn = setInterval(() => {
-                if (!gameActive) { clearInterval(spawn); return; }
-                const hp = 100 + (gameState.wave * 50);
-                enemies.push({x: wps[0].x, y: wps[0].y, hp, maxHp: hp, baseSpd: 1.2 + (gameState.wave * 0.05), wp: 0, slowFactor: 1});
-                if (++count >= total) { clearInterval(spawn); }
-            }, 600);
+            
+            const itv = setInterval(() => {
+                if (!gameActive) { clearInterval(itv); return; }
+                
+                let hp;
+                if (isUltimateBoss) {
+                    hp = 25000 + (gameState.wave * 3000); 
+                } else {
+                    hp = (isBossWave ? 2000 : 80) + (gameState.wave * (isBossWave ? 1500 : 100));
+                }
+                
+                enemies.push({ 
+                    x:wps[0].x, 
+                    y:wps[0].y, 
+                    hp, 
+                    maxHp:hp, 
+                    baseSpd: (isBossWave ? 0.5 : 1.2) + (gameState.wave * 0.05), 
+                    wp:0, 
+                    isBoss:isBossWave, 
+                    isUltimate: isUltimateBoss,
+                    frozen: 0, 
+                    slowFactor: 1 
+                });
+                
+                if (++c >= (isBossWave ? 1 : totalEnemies)) clearInterval(itv);
+            }, 800);
+        };
+
+        window.repairCore = () => {
+            playClick();
+            if (gameState.repairsLeft > 0 && gameState.health < gameState.maxHealth) {
+                gameState.health = Math.min(gameState.maxHealth, gameState.health + 40); gameState.repairsLeft--;
+                document.getElementById('repairCount').innerText = gameState.repairsLeft; updateUI(); showAlert("SYSTEM REPAIRED", "emerald");
+                if (gameState.repairsLeft === 0) document.getElementById('repairBtn').classList.add('hidden');
+            }
         };
 
         function gameLoop() {
             if (!gameActive) return;
+            if (isVip && ++gameState.vipTimer >= 1500) { gameState.money += 300; updateUI(); gameState.vipTimer = 0; }
+            if (gameState.health <= 0) { endGame(false); return; }
+
+            if (gameState.isWaveActive && enemies.length === 0) {
+                gameState.isWaveActive = false;
+                gameState.wave++;
+                updateUI();
+                showAlert(`WAVE ${gameState.wave-1} CLEARED`, "emerald");
+                const maxWaves = gameState.difficulty === 'easy' ? 20 : 35;
+                if (gameState.wave > maxWaves) { endGame(true); return; }
+            }
+
             ctx.fillStyle = '#020617'; ctx.fillRect(0,0,canvas.width,canvas.height);
             const wps = mapWays[selectedMapIdx];
-            ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 60; ctx.beginPath(); ctx.moveTo(wps[0].x, wps[0].y); wps.forEach(p => ctx.lineTo(p.x, p.y)); ctx.stroke();
+            ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 65; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(wps[0].x, wps[0].y); wps.forEach(w => ctx.lineTo(w.x, w.y)); ctx.stroke();
 
-            // Towers
-            gameState.towers.forEach(t => {
-                ctx.fillStyle = t.color; ctx.beginPath(); ctx.arc(t.x, t.y, 25, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = 'white'; ctx.fillText(t.emoji, t.x-10, t.y+5);
+            if (selectedPlacement) {
+                const t = towerData[selectedPlacement];
+                ctx.beginPath(); 
+                ctx.arc(mousePos.x, mousePos.y, t.range, 0, Math.PI*2);
+                ctx.shadowBlur = 30;
+                ctx.shadowColor = t.color;
+                ctx.fillStyle = t.color + "33"; 
+                ctx.fill(); 
+                ctx.strokeStyle = t.color; 
+                ctx.lineWidth = 3; 
+                ctx.setLineDash([10, 5]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.shadowBlur = 0;
+            }
+
+            for(let i=gameState.towers.length-1; i>=0; i--) {
+                const t = gameState.towers[i];
+                ctx.beginPath();
+                ctx.arc(t.x, t.y, t.range, 0, Math.PI * 2);
+                ctx.shadowBlur = selectedTowerId === t.id ? 40 : 20;
+                ctx.shadowColor = t.color;
+                ctx.fillStyle = t.color + "15"; 
+                ctx.fill();
+                ctx.strokeStyle = selectedTowerId === t.id ? t.color : t.color + "99"; 
+                ctx.lineWidth = selectedTowerId === t.id ? 4 : 2;
+                ctx.stroke();
+                ctx.shadowBlur = 0; 
+
+                ctx.shadowBlur = 20; ctx.shadowColor = t.color; ctx.fillStyle = t.color; ctx.beginPath(); ctx.arc(t.x, t.y, 30, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
+                ctx.fillStyle = 'white'; ctx.font = 'bold 24px Arial'; ctx.textAlign = 'center'; ctx.fillText(t.emoji, t.x, t.y+8);
                 
-                if (!t.isLaser && ++t.timer >= t.currentSpd) {
+                if (t.type === 'wall') {
+                    ctx.fillStyle = '#1e293b'; ctx.fillRect(t.x-25, t.y-45, 50, 6); ctx.fillStyle = '#10b981'; ctx.fillRect(t.x-25, t.y-45, (t.currentHp/t.currentMaxHp)*50, 6);
+                    if (t.currentHp <= 0) { gameState.towers.splice(i,1); continue; }
+                } else if (t.isLaser) {
                     const target = enemies.find(e => Math.hypot(e.x-t.x, e.y-t.y) < t.range);
-                    if (target) {
-                        projectiles.push({x: t.x, y: t.y, target, spd: 10, dmg: t.currentDmg, color: t.color});
-                        t.timer = 0;
+                    if (target) { ctx.strokeStyle = t.color; ctx.lineWidth = 4 + Math.sin(Date.now()*0.01)*2; ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(target.x, target.y); ctx.stroke(); target.hp -= t.currentDmg / 60; if (target.hp <= 0) handleKill(target); }
+                } else {
+                    if (++t.timer >= t.currentSpd) {
+                        const target = enemies.find(e => Math.hypot(e.x-t.x, e.y-t.y) < t.range);
+                        if (target) { projectiles.push({ x: t.x, y: t.y, target, color: t.color, dmg: t.currentDmg, spd: t.p_spd, type: t.type, isFreeze: t.isFreeze, level: t.level }); t.timer = 0; }
                     }
                 }
-            });
+            }
 
-            // Enemies
             for(let i=enemies.length-1; i>=0; i--) {
                 const e = enemies[i];
-                const tar = wps[e.wp+1];
-                const d = Math.hypot(tar.x-e.x, tar.y-e.y);
-                e.x += (tar.x-e.x)/d * e.baseSpd; e.y += (tar.y-e.y)/d * e.baseSpd;
-                if (d < 5 && ++e.wp >= wps.length-1) { gameState.health -= 10; enemies.splice(i,1); updateUI(); continue; }
+                if (e.frozen > 0) e.frozen--;
+                else {
+                    const wallHit = gameState.towers.find(t => t.type === 'wall' && Math.hypot(t.x-e.x, t.y-e.y) < 40);
+                    if (wallHit) { 
+                        if (e.isUltimate) { wallHit.currentHp = 0; }
+                        else { wallHit.currentHp -= (e.isBoss ? 2 : 0.5); e.hp -= (wallHit.currentDmg / 40); }
+                        if (e.hp <= 0) { handleKill(e, i); continue; } 
+                    } 
+                    else {
+                        const tar = wps[e.wp+1]; const d = Math.hypot(tar.x-e.x, tar.y-e.y); const moveSpd = e.baseSpd * e.slowFactor; e.x += (tar.x-e.x)/d * moveSpd; e.y += (tar.y-e.y)/d * moveSpd;
+                        if (d < 5 && ++e.wp >= wps.length-1) { 
+                            gameState.health -= (e.isUltimate ? 100 : (e.isBoss ? 40 : 10)); 
+                            enemies.splice(i,1); updateUI(); continue; 
+                        }
+                    }
+                }
+
+                if (e.isUltimate) {
+                    ctx.shadowBlur = 40; ctx.shadowColor = '#00f2ff';
+                    ctx.fillStyle = '#22d3ee';
+                    ctx.beginPath(); ctx.arc(e.x, e.y, 45, 0, Math.PI*2); ctx.fill();
+                    ctx.shadowBlur = 0;
+                } else {
+                    ctx.fillStyle = e.frozen > 0 ? '#00f2ff' : (e.isBoss ? '#fde047' : '#ff003c'); ctx.beginPath(); ctx.arc(e.x, e.y, e.isBoss ? 35 : 18, 0, Math.PI*2); ctx.fill();
+                }
                 
-                ctx.fillStyle = '#ff003c'; ctx.beginPath(); ctx.arc(e.x, e.y, 15, 0, Math.PI*2); ctx.fill();
-                if (e.hp <= 0) { enemies.splice(i,1); globalCoins += 5; gameState.money += 50; updateUI(); saveProfile(); continue; }
+                const barW = (e.isUltimate ? 100 : (e.isBoss ? 80 : 40)); 
+                ctx.fillStyle = '#1e293b'; ctx.fillRect(e.x - barW/2, e.y - (e.isBoss || e.isUltimate ? 65 : 30), barW, 5); ctx.fillStyle = '#ff003c'; ctx.fillRect(e.x - barW/2, e.y - (e.isBoss || e.isUltimate ? 65 : 30), (e.hp / e.maxHp) * barW, 5);
+                if (e.slowFactor < 1) e.slowFactor += 0.005; if (e.slowFactor > 1) e.slowFactor = 1;
             }
 
-            // Projectiles
             for(let i=projectiles.length-1; i>=0; i--) {
-                const p = projectiles[i];
-                const d = Math.hypot(p.target.x-p.x, p.target.y-p.y);
+                const p = projectiles[i]; const d = Math.hypot(p.target.x-p.x, p.target.y-p.y);
+                if (d < 15 || !enemies.includes(p.target)) {
+                    if (enemies.includes(p.target)) {
+                        p.target.hp -= p.dmg;
+                        if (p.isFreeze) { p.target.slowFactor = 0.4; if (p.level === 3) p.target.frozen = 120; }
+                        if (p.type === 'boom' || p.type === 'boom_pro') { 
+                            const radius = p.type === 'boom_pro' ? 120 : 90; let hits = 0;
+                            enemies.forEach(ne => { if(Math.hypot(ne.x-p.x, ne.y-p.y) < radius && hits < 4) { ne.hp -= p.dmg*0.4; hits++; } }); 
+                        }
+                        if (p.target.hp <= 0) handleKill(p.target);
+                    }
+                    projectiles.splice(i,1); continue;
+                }
                 p.x += (p.target.x-p.x)/d * p.spd; p.y += (p.target.y-p.y)/d * p.spd;
-                ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI*2); ctx.fill();
-                if (d < 10) { p.target.hp -= p.dmg; projectiles.splice(i,1); }
+                ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI*2); ctx.fill();
             }
-
-            if (gameState.health <= 0) endGame(false);
-            if (gameState.isWaveActive && enemies.length === 0) { gameState.isWaveActive = false; gameState.wave++; updateUI(); }
-
             requestAnimationFrame(gameLoop);
         }
 
-        function endGame(won) {
-            gameActive = false;
+        function handleKill(enemy, forcedIndex = -1) {
+            const idx = forcedIndex !== -1 ? forcedIndex : enemies.indexOf(enemy); if (idx === -1) return;
+            enemies.splice(idx,1); 
+            gameState.money += enemy.isUltimate ? 3000 : (enemy.isBoss ? 600 : 100); 
+            globalCoins += enemy.isUltimate ? 100 : (enemy.isBoss ? 30 : 5); 
+            updateUI(); updateMenuUI();
+            saveProfile(); 
+        }
+
+        async function endGame(won) {
+            if (!gameActive) return; gameActive = false; 
+            document.getElementById('gameHud').classList.add('hidden');
+            document.getElementById('gameShop').style.display = 'none';
+            document.getElementById('upgradeMenu').classList.add('hidden');
             document.getElementById('gameResult').classList.remove('hidden');
-            document.getElementById('resultTitle').innerText = won ? "VICTORY" : "DEFEAT";
-            if (won) { globalCoins += 500; saveProfile(); }
-        }
-
-        function resize() {
-            canvas.width = 1200; canvas.height = 800;
-        }
-
-        // INITIALIZATION
-        window.onload = () => {
-            loadProfile();
-            updateMenuUI();
+            const reward = won ? (gameState.difficulty === 'easy' ? 1000 : 2500) : 0;
             
-            // Loading screen logic
-            const bar = document.getElementById('loadingBar');
-            let p = 0;
-            const intv = setInterval(() => {
-                p += 5; bar.style.width = p + '%';
-                if (p >= 100) {
-                    clearInterval(intv);
-                    setTimeout(() => document.getElementById('loadingScreen').style.display = 'none', 500);
+            if (won) {
+                globalCoins += reward;
+                if (gameState.difficulty === 'easy' && !questData.completed) {
+                    questData.progress = Math.min(3, questData.progress + 1);
+                    if (questData.progress >= 3) {
+                        questData.completed = true;
+                        globalCoins += 500;
+                        showAlert("DAILY QUEST COMPLETED: +500 NeonCoins!", "emerald");
+                    }
                 }
-            }, 50);
-        };
+                await saveProfile(); 
+                document.getElementById('resultTitle').innerText = "MISSION SUCCESS"; 
+                document.getElementById('resultTitle').style.color = "#10b981"; 
+                document.getElementById('resultReward').innerText = `+${reward} NeonCoins RECEIVED`; 
+                updateMenuUI(); 
+            } 
+            else { 
+                document.getElementById('resultTitle').innerText = "SYSTEM BREACHED"; 
+                document.getElementById('resultTitle').style.color = "#ff003c"; 
+                document.getElementById('resultReward').innerText = "RETRY TO EARN COINS"; 
+                await saveProfile();
+            }
+            temporaryUnits = [];
+            resize();
+        }
     </script>
 </body>
 </html>
