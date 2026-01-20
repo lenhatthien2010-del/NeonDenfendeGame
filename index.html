@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Defense - Extreme Glow v.1.5.1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        
+        :root { 
+            --neon-blue: #00f2ff; 
+            --neon-purple: #bc13fe; 
+            --neon-red: #ff003c; 
+            --neon-yellow: #fde047;
+            --neon-green: #10b981;
+            --neon-cyan: #22d3ee;
+        }
+        body { background-color: #020617; margin: 0; overflow: hidden; font-family: 'Orbitron', sans-serif; color: #fff; user-select: none; }
+        canvas { display: block; touch-action: none; }
+
+        .glass-panel { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(20px); border: 1px solid rgba(0, 242, 255, 0.2); }
+        
+        .neon-btn {
+            position: relative;
+            transition: 0.3s;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0, 242, 255, 0.2);
+        }
+        .neon-btn:hover { box-shadow: 0 0 20px rgba(0, 242, 255, 0.5); transform: translateY(-2px); }
+        
+        #loadingScreen {
+            display: none;
+        }
+
+        #gameShop { 
+            width: 100%; 
+            height: 120px; 
+            position: absolute; 
+            bottom: 0; 
+            left: 0; 
+            border-top: 1px solid rgba(0, 242, 255, 0.2); 
+            overflow-x: auto;
+            overflow-y: hidden;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+        }
+
+        .shop-container { 
+            display: flex; 
+            flex-direction: row; 
+            gap: 12px; 
+            min-width: max-content; 
+            padding: 10px;
+        }
+
+        .unit-card {
+            background: rgba(30, 41, 59, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: 0.3s;
+            width: 80px;
+            height: 90px;
+            flex-shrink: 0;
+        }
+        
+        .unit-card.active { border-color: var(--neon-blue); background: rgba(0, 242, 255, 0.1); box-shadow: 0 0 20px rgba(0, 242, 255, 0.4); }
+        
+        .map-btn, .diff-btn { transition: 0.3s; border: 1px solid rgba(255,255,255,0.1); }
+        .map-btn.selected, .diff-btn.selected { border-color: #00f2ff; background: rgba(0, 242, 255, 0.1); box-shadow: 0 0 15px rgba(0, 242, 255, 0.3); }
+        
+        #customAlert { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; pointer-events: none; }
+        .vip-rank { color: #fde047; text-shadow: 0 0 10px #fde047; }
+
+        #unitShopModal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 100; display: none; align-items: center; justify-content: center; }
+    </style>
+</head>
+<body class="flex flex-col h-screen">
+
+    <div id="customAlert"></div>
+
+    <!-- Main Menu -->
+    <div id="mainMenu" class="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]">
+        <div class="glass-panel p-8 rounded-3xl w-full max-w-2xl text-center border-cyan-500/30 overflow-y-auto max-h-screen">
+            <h2 class="text-3xl font-black mb-2 text-cyan-400 drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]">NEON DEFENSE <span class="text-sm opacity-50">v.1.5.1</span></h2>
+            
+            <div class="flex justify-center gap-4 mb-6">
+                <div class="bg-slate-900 p-4 rounded-2xl border border-white/5 flex-1">
+                    <div class="text-[10px] text-slate-500 uppercase">NeonCoin</div>
+                    <div class="text-xl font-bold text-yellow-400" id="globalCoins">0</div>
+                </div>
+                <div class="bg-slate-900 p-4 rounded-2xl border border-white/5 flex-1">
+                    <div class="text-[10px] text-slate-500">RANK</div>
+                    <div class="text-sm font-bold" id="vipLabel">RECRUIT</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div class="text-left space-y-4">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Select Arena</h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="window.selectMap(0)" id="map0" class="map-btn p-3 rounded-xl bg-slate-800 text-[10px] selected">SECTOR A</button>
+                        <button onclick="window.selectMap(1)" id="map1" class="map-btn p-3 rounded-xl bg-slate-800 text-[10px]">CORRIDOR B</button>
+                    </div>
+                    
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest pt-2">Difficulty</h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="window.selectDiff('easy')" id="diffEasy" class="diff-btn p-3 rounded-xl bg-slate-800 text-[10px] selected text-green-400">EASY (20 Waves)</button>
+                        <button onclick="window.selectDiff('hard')" id="diffHard" class="diff-btn p-3 rounded-xl bg-slate-800 text-[10px] text-red-500">HARD (35 Waves)</button>
+                    </div>
+                </div>
+                <div class="text-left space-y-4">
+                    <button onclick="window.toggleUnitShop(true)" class="w-full py-4 bg-purple-600/30 border border-purple-500/50 rounded-2xl font-bold text-xs hover:bg-purple-600/50 transition">UNIT SHOP (Unlock Units)</button>
+                    <div class="bg-slate-900/50 p-4 rounded-xl border border-white/5">
+                        <input type="text" id="cheatCode" placeholder="ENTER CODE..." class="w-full bg-black/40 border border-white/10 p-2 rounded text-[10px] mb-2 text-cyan-400 outline-none">
+                        <button onclick="window.applyCheat()" class="w-full bg-white/5 py-1 text-[8px] rounded hover:bg-white/10">SUBMIT CODE</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <button onclick="window.startGame()" class="neon-btn w-full py-4 bg-cyan-600 rounded-2xl font-bold text-white shadow-lg shadow-cyan-900/40">INITIALIZE MISSION</button>
+                <button id="buyVipBtn" onclick="window.buyVip()" class="w-full py-3 bg-gradient-to-r from-amber-600 to-yellow-500 rounded-2xl font-bold text-xs text-white">PURCHASE VIP (3000 NeonCoins)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unit Shop Modal -->
+    <div id="unitShopModal" class="p-4">
+        <div class="glass-panel p-6 rounded-3xl w-full max-w-xl">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-black text-purple-400 uppercase">Permanent Unit Shop</h2>
+                <button onclick="window.toggleUnitShop(false)" class="text-slate-500">CLOSE</button>
+            </div>
+            <div class="grid grid-cols-1 gap-4 overflow-y-auto max-h-[60vh]" id="unitShopList"></div>
+            <div class="mt-6 text-center text-[10px] text-slate-500">Your Coins: <span class="text-yellow-500 font-bold" id="shopCoins">0</span></div>
+        </div>
+    </div>
+
+    <!-- Game HUD -->
+    <div id="gameHud" class="glass-panel p-4 flex justify-between items-center z-30 border-b border-cyan-500/20 hidden">
+        <div class="flex gap-4">
+            <div class="flex flex-col">
+                <span class="text-[10px] text-cyan-400 font-bold uppercase">Cash</span>
+                <span class="text-xl font-black text-yellow-400 tabular-nums">$<span id="money">2000</span></span>
+            </div>
+            <div class="flex flex-col min-w-[120px]">
+                <div class="flex justify-between items-center">
+                    <span class="text-[10px] text-red-500 font-bold uppercase">Base Core</span>
+                    <button id="repairBtn" onclick="window.repairCore()" class="hidden bg-green-600 text-[8px] px-2 py-0.5 rounded font-bold">REPAIR (<span id="repairCount">2</span>)</button>
+                </div>
+                <div class="w-full h-2 bg-slate-800 rounded-full mt-1 overflow-hidden">
+                    <div id="healthBar" class="h-full bg-red-500 shadow-[0_0_10px_#ef4444]" style="width: 100%"></div>
+                </div>
+            </div>
+        </div>
+        <div class="text-center">
+            <span class="text-[10px] text-slate-500 uppercase">Wave</span>
+            <div class="text-xl font-black text-white" id="wave">1</div>
+        </div>
+        <button id="nextWaveBtn" class="neon-btn bg-cyan-600 hover:bg-cyan-500 px-6 py-2 rounded-xl font-bold text-xs uppercase">Next Swarm</button>
+    </div>
+
+    <!-- Canvas Area -->
+    <div class="relative flex-grow flex items-start justify-center bg-[#020617] overflow-hidden">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="upgradeMenu" class="absolute hidden glass-panel p-5 rounded-2xl z-40 w-64 border-cyan-500/40 shadow-xl shadow-cyan-500/10">
+            <h3 id="unitName" class="font-black text-cyan-400 text-lg italic uppercase">UNIT</h3>
+            <p id="unitStats" class="text-[11px] text-slate-400 mb-2 uppercase">Stats...</p>
+            <p id="upgradeLevel" class="text-[10px] text-yellow-500 font-bold mb-4">Upgrades: 0/3</p>
+            <div class="space-y-2">
+                <button id="upgradeBtn" class="neon-btn w-full py-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-bold text-xs text-white">UPGRADE</button>
+                <button id="sellBtn" class="neon-btn w-full py-3 bg-red-900/40 border border-red-500/40 hover:bg-red-600 rounded-xl font-bold text-xs text-white">SELL (<span id="sellValue">$0</span>)</button>
+                <button onclick="window.closeUpgradeMenu()" class="w-full py-2 text-[10px] text-slate-500 uppercase pt-2">Close</button>
+            </div>
+        </div>
+
+        <div id="gameResult" class="absolute hidden inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md">
+            <div class="text-center">
+                <h2 id="resultTitle" class="text-5xl font-black mb-4 uppercase">SYSTEM BREACHED</h2>
+                <div class="text-yellow-500 text-xl font-bold mb-6" id="resultReward"></div>
+                <button onclick="location.reload()" class="neon-btn px-10 py-4 bg-white text-black font-bold rounded-full">REBOOT SYSTEM</button>
+            </div>
+        </div>
+
+        <div id="gameShop" class="glass-panel bg-slate-950/90 z-30 hidden">
+            <div class="shop-container" id="shop"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'neon-defend-extreme-v1';
+        
+        // Cài đặt an toàn cho Firebase config (Safe Firebase Setup)
+        let db, auth;
+        try {
+            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "" };
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        } catch(e) { console.warn("Firebase not configured correctly."); }
+
+        let user = null, isVip = false, globalCoins = 0, gameActive = false, selectedMapIdx = 0, selectedDiffVal = 'easy', ownedUnits = ['scout', 'sniper', 'boom', 'ak47', 'wall'];
+        let gameState = { money: 2000, wave: 1, towers: [], health: 100, maxHealth: 100, isWaveActive: false, difficulty: 'easy', vipTimer: 0, repairsLeft: 2 };
+        let enemies = [], projectiles = [], particles = [];
+        let selectedPlacement = null, selectedTowerId = null, mousePos = { x: 0, y: 0 };
+
+        const mapWays = [
+            [{x:-50,y:350}, {x:200,y:350}, {x:200,y:150}, {x:500,y:150}, {x:500,y:550}, {x:800,y:550}, {x:800,y:350}, {x:1050,y:350}],
+            [{x:100,y:-50}, {x:100,y:500}, {x:400,y:500}, {x:400,y:200}, {x:700,y:200}, {x:700,y:750}]
+        ];
+
+        const towerData = {
+            scout: { type: 'scout', name: "GUN", price: 150, range: 160, dmg: 40, maxDmg: 250, spd: 60, maxSpd: 30, color: "#00f2ff", emoji: "🔫", p_spd: 12, upgradeInit: 150 },
+            sniper: { type: 'sniper', name: "SNIPER", price: 500, range: 450, dmg: 100, maxDmg: 400, spd: 240, maxSpd: 150, color: "#bc13fe", emoji: "🎯", p_spd: 22, upgradeInit: 300 },
+            boom: { type: 'boom', name: "ROCKET", price: 850, range: 220, dmg: 200, maxDmg: 700, spd: 200, maxSpd: 120, color: "#ff003c", emoji: "🚀", p_spd: 8, upgradeInit: 450 },
+            ak47: { type: 'ak47', name: "GUN v2", price: 1300, range: 250, dmg: 120, maxDmg: 800, spd: 60, maxSpd: 30, color: "#fde047", emoji: "🔫", p_spd: 15, upgradeInit: 600 },
+            wall: { type: 'wall', name: "WALL", price: 1500, range: 60, dmg: 30, maxDmg: 30, spd: 0, color: "#10b981", emoji: "🚧", p_spd: 0, upgradeInit: 800, hp: 500, maxHp: 1200 },
+            lazer: { type: 'lazer', name: "LASER", price: 2000, range: 300, dmg: 10, maxDmg: 1000, spd: 1, color: "#ff0000", emoji: "⚡", p_spd: 0, upgradeInit: 1000, isLaser: true },
+            freeze: { type: 'freeze', name: "FREEZE", price: 2200, range: 250, dmg: 20, maxDmg: 500, spd: 60, maxSpd: 60, color: "#00ffff", emoji: "❄️", p_spd: 10, upgradeInit: 1200, isFreeze: true },
+            boom_pro: { type: 'boom_pro', name: "ULTRA BOOM", price: 3000, range: 350, dmg: 400, maxDmg: 1200, spd: 120, maxSpd: 120, color: "#ff8800", emoji: "💥", p_spd: 10, upgradeInit: 1500, isArea: true }
+        };
+
+        const shopItems = [
+            { id: 'lazer', name: 'LASER CANNON', emoji: '⚡', cost: 3000, desc: 'Continuous red beam. Max 1000 DMG.' },
+            { id: 'freeze', name: 'GLACIER', emoji: '❄️', cost: 3200, desc: 'Slows targets. Freezes at Max Level.' },
+            { id: 'boom_pro', name: 'BOOM PRO', emoji: '💥', cost: 2500, desc: 'Explosive AOE hits 4 targets. 1200 DMG.' }
+        ];
+
+        // Khởi tạo Auth an toàn (Safe Auth Initialization)
+        const initAuth = async () => {
+          if (!auth) return;
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token);
+          else await signInAnonymously(auth);
+        };
+        initAuth();
+
+        if (auth) {
+            onAuthStateChanged(auth, async (u) => {
+                user = u; if (!user) return;
+                try {
+                    const snap = await getDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'data'));
+                    if (snap.exists()) {
+                        const data = snap.data(); 
+                        globalCoins = data.coins || 0; 
+                        isVip = data.isVip || false; 
+                        ownedUnits = data.ownedUnits || ['scout', 'sniper', 'boom', 'ak47', 'wall'];
+                    }
+                } catch(e) {}
+                updateMenuUI();
+                renderInGameShop();
+            });
+        }
+
+        // Gắn các hàm vào window để HTML có thể gọi (Expose functions to window)
+        window.toggleUnitShop = (show) => {
+            document.getElementById('unitShopModal').style.display = show ? 'flex' : 'none';
+            if (show) renderUnitShop();
+        };
+
+        function renderUnitShop() {
+            const list = document.getElementById('unitShopList');
+            document.getElementById('shopCoins').innerText = globalCoins;
+            list.innerHTML = "";
+            shopItems.forEach(item => {
+                const owned = ownedUnits.includes(item.id);
+                const div = document.createElement('div');
+                div.className = "bg-slate-900 p-4 rounded-2xl flex justify-between items-center border border-white/5";
+                div.innerHTML = `
+                    <div class="flex items-center gap-4">
+                        <div class="text-3xl">${item.emoji}</div>
+                        <div>
+                            <div class="font-bold text-cyan-400">${item.name}</div>
+                            <div class="text-[9px] text-slate-500">${item.desc}</div>
+                        </div>
+                    </div>
+                    <button onclick="window.buyUnit('${item.id}', ${item.cost})" ${owned ? 'disabled' : ''} class="px-4 py-2 rounded-xl text-[10px] font-bold ${owned ? 'bg-slate-800 text-slate-500' : 'bg-purple-600 text-white'}">
+                        ${owned ? 'OWNED' : item.cost + ' COINS'}
+                    </button>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        window.buyUnit = async (id, cost) => {
+            if (globalCoins >= cost) {
+                globalCoins -= cost;
+                ownedUnits.push(id);
+                await saveProfile();
+                renderUnitShop();
+                renderInGameShop();
+                updateMenuUI();
+                showAlert("UNIT UNLOCKED PERMANENTLY", "emerald");
+            } else showAlert("NOT ENOUGH NEONCOINS", "red");
+        };
+
+        function renderInGameShop() {
+            const shop = document.getElementById('shop');
+            shop.innerHTML = "";
+            ownedUnits.forEach(key => {
+                const t = towerData[key];
+                const card = document.createElement('div');
+                card.className = 'unit-card';
+                card.innerHTML = `<div class="text-2xl">${t.emoji}</div><div class="flex flex-col text-center"><span class="text-[9px] font-bold text-cyan-400">${t.name}</span><span class="text-xs font-black text-yellow-500">$${Math.floor(isVip ? t.price*0.8 : t.price)}</span></div>`;
+                card.onclick = (e) => { 
+                    e.stopPropagation(); selectedPlacement = key; selectedTowerId = null;
+                    document.querySelectorAll('.unit-card').forEach(c => c.classList.remove('active')); card.classList.add('active'); 
+                };
+                shop.appendChild(card);
+            });
+        }
+
+        function updateMenuUI() {
+            document.getElementById('globalCoins').innerText = globalCoins;
+            const vipLabel = document.getElementById('vipLabel');
+            if (isVip) {
+                vipLabel.innerText = "ELITE VIP"; vipLabel.className = "text-sm font-bold vip-rank";
+                document.getElementById('buyVipBtn').style.display = 'none';
+            }
+        }
+
+        function showAlert(msg, color="cyan") {
+            const alert = document.getElementById('customAlert');
+            const el = document.createElement('div');
+            el.className = `px-6 py-2 rounded-full font-bold text-xs bg-${color}-500/20 text-${color}-400 border border-${color}-500/30 mb-2 shadow-lg`;
+            el.innerText = msg; alert.appendChild(el);
+            setTimeout(() => { el.classList.add('opacity-0'); setTimeout(() => el.remove(), 300); }, 3000);
+        }
+
+        window.applyCheat = async () => {
+            const code = document.getElementById('cheatCode').value.toLowerCase().trim();
+            if (code === 'g3k') {
+                globalCoins += 10000; await saveProfile(); updateMenuUI(); showAlert("CHEAT ACTIVATED: +10,000 COINS!", "emerald");
+                document.getElementById('cheatCode').value = "";
+            } else showAlert("INVALID CODE", "red");
+        };
+
+        window.selectMap = (i) => {
+            selectedMapIdx = i; document.querySelectorAll('.map-btn').forEach(b => b.classList.remove('selected'));
+            document.getElementById('map'+i).classList.add('selected');
+        };
+
+        window.selectDiff = (d) => {
+            selectedDiffVal = d; document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('selected'));
+            document.getElementById('diff' + d.charAt(0).toUpperCase() + d.slice(1)).classList.add('selected');
+        };
+
+        window.buyVip = async () => {
+            if (globalCoins >= 3000 && !isVip) {
+                globalCoins -= 3000; isVip = true; await saveProfile(); updateMenuUI(); showAlert("VIP ACTIVATED", "emerald");
+            } else showAlert("INSUFFICIENT COINS", "red");
+        };
+
+        async function saveProfile() {
+            if (!user || !db) return;
+            try {
+                await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'data'), { coins: globalCoins, isVip: isVip, ownedUnits: ownedUnits }, { merge: true });
+            } catch(e) {}
+        }
+
+        window.startGame = () => {
+            document.getElementById('mainMenu').classList.add('hidden');
+            document.getElementById('gameHud').classList.remove('hidden');
+            document.getElementById('gameShop').classList.remove('hidden');
+            gameState.difficulty = selectedDiffVal; gameState.wave = 1; gameState.money = 2000; gameState.health = 100; gameState.towers = []; gameState.repairsLeft = 2;
+            if (isVip) document.getElementById('repairBtn').classList.remove('hidden');
+            gameActive = true; updateUI(); renderInGameShop(); requestAnimationFrame(gameLoop);
+        };
+
+        function resize() {
+            canvas.width = 1000; canvas.height = 700;
+            const container = canvas.parentElement; const ratio = 1000 / 700;
+            let w = container.clientWidth, h = w / ratio;
+            if (h > container.clientHeight) { h = container.clientHeight; w = h * ratio; }
+            canvas.style.width = `${w}px`; canvas.style.height = `${h}px`;
+        }
+        window.addEventListener('resize', resize);
+        window.addEventListener('load', resize);
+
+        canvas.addEventListener('pointermove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mousePos.x = (e.clientX - rect.left) * (1000 / rect.width);
+            mousePos.y = (e.clientY - rect.top) * (700 / rect.height);
+        });
+
+        canvas.addEventListener('pointerdown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (1000 / rect.width);
+            const y = (e.clientY - rect.top) * (700 / rect.height);
+
+            if (selectedPlacement) {
+                const t = towerData[selectedPlacement];
+                const realPrice = Math.floor(isVip ? t.price * 0.8 : t.price);
+                if (gameState.money >= realPrice) {
+                    const isWall = t.type === 'wall';
+                    const onPath = isNearPath(x, y, 40);
+                    let canPlace = isWall ? onPath : !onPath;
+                    const onTower = gameState.towers.some(ot => Math.hypot(ot.x-x, ot.y-y) < 55);
+
+                    if (canPlace && !onTower) {
+                        gameState.towers.push({ ...t, x, y, level: 0, upgradeCost: t.upgradeInit, timer: 0, id: Date.now(), totalInvested: realPrice, currentDmg: t.dmg, currentSpd: t.spd, currentHp: t.hp || 0, currentMaxHp: t.hp || 0 });
+                        gameState.money -= realPrice; updateUI(); selectedPlacement = null; document.querySelectorAll('.unit-card').forEach(c => c.classList.remove('active'));
+                    } else showAlert("INVALID PLACEMENT", "red");
+                } else showAlert("INSUFFICIENT FUNDS", "red");
+                return;
+            }
+
+            const clicked = gameState.towers.find(t => Math.hypot(t.x - x, t.y - y) < 40);
+            if (clicked) { selectedTowerId = clicked.id; openUpgrade(clicked, e.clientX, e.clientY); }
+            else window.closeUpgradeMenu();
+        });
+
+        function isNearPath(x, y, dist) {
+            const wps = mapWays[selectedMapIdx];
+            for (let i=0; i < wps.length-1; i++) {
+                const p1 = wps[i], p2 = wps[i+1];
+                const L2 = Math.pow(p2.x-p1.x, 2) + Math.pow(p2.y-p1.y, 2); if (L2 === 0) continue;
+                let t = ((x-p1.x)*(p2.x-p1.x) + (y-p1.y)*(p2.y-p1.y)) / L2;
+                t = Math.max(0, Math.min(1, t));
+                const dx = x - (p1.x + t*(p2.x-p1.x)), dy = y - (p1.y + t*(p2.y-p1.y));
+                if (Math.sqrt(dx*dx + dy*dy) < dist) return true;
+            }
+            return false;
+        }
+
+        function createExplosion(x, y, color) {
+            for (let i = 0; i < 20; i++) particles.push({ x, y, vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10, life: 30+Math.random()*20, color, size: 2+Math.random()*3 });
+        }
+
+        function openUpgrade(tower, sx, sy) {
+            const menu = document.getElementById('upgradeMenu');
+            document.getElementById('unitName').innerText = tower.name;
+            let statsText = tower.type === 'wall' ? `Reflect: ${tower.currentDmg} | HP: ${Math.floor(tower.currentHp)}` : `Dmg: ${tower.currentDmg} | Spd: ${(tower.currentSpd/60).toFixed(1)}s`;
+            document.getElementById('unitStats').innerText = statsText;
+            document.getElementById('upgradeLevel').innerText = `Upgrades: ${tower.level}/3`;
+            const sellPrice = Math.floor(tower.totalInvested * 0.6);
+            document.getElementById('sellValue').innerText = `$${sellPrice}`;
+            const upgradeBtn = document.getElementById('upgradeBtn');
+
+            if (tower.level >= 3) { upgradeBtn.innerText = "MAX POWER"; upgradeBtn.onclick = null; }
+            else {
+                upgradeBtn.innerText = `UPGRADE ($${tower.upgradeCost})`;
+                upgradeBtn.onclick = () => {
+                    if (gameState.money >= tower.upgradeCost) {
+                        gameState.money -= tower.upgradeCost; tower.level++; 
+                        if (tower.type !== 'wall') {
+                            tower.currentDmg = Math.floor(tower.currentDmg + (tower.maxDmg - tower.dmg)/3);
+                            tower.currentSpd = Math.max(tower.maxSpd, tower.currentSpd - (tower.spd - tower.maxSpd)/3);
+                            tower.range += 30;
+                        } else { tower.currentMaxHp += 200; tower.currentHp += 200; }
+                        tower.totalInvested += tower.upgradeCost; tower.upgradeCost = Math.floor(tower.upgradeCost * 1.5);
+                        updateUI(); openUpgrade(tower, sx, sy); showAlert("SYSTEM UPGRADED", "emerald");
+                    } else showAlert("NOT ENOUGH MONEY", "red");
+                };
+            }
+            menu.style.left = `${Math.min(window.innerWidth-280, Math.max(20, sx-130))}px`;
+            menu.style.top = `${Math.max(20, sy-220)}px`;
+            menu.classList.remove('hidden');
+            document.getElementById('sellBtn').onclick = () => {
+                gameState.money += sellPrice; gameState.towers = gameState.towers.filter(t => t.id !== tower.id);
+                updateUI(); window.closeUpgradeMenu();
+            };
+        }
+        window.closeUpgradeMenu = () => { document.getElementById('upgradeMenu').classList.add('hidden'); selectedTowerId = null; };
+
+        function updateUI() {
+            document.getElementById('money').innerText = Math.floor(gameState.money);
+            document.getElementById('wave').innerText = gameState.wave;
+            document.getElementById('healthBar').style.width = `${(gameState.health / gameState.maxHealth) * 100}%`;
+        }
+
+        document.getElementById('nextWaveBtn').onclick = () => {
+            if (gameState.isWaveActive) return;
+            const maxWaves = gameState.difficulty === 'easy' ? 20 : 35;
+            if (gameState.wave > maxWaves) { endGame(true); return; }
+
+            gameState.isWaveActive = true; let c = 0; const isBossWave = (gameState.wave % 5 === 0);
+            let totalEnemies = 8 + gameState.wave * 2; const wps = mapWays[selectedMapIdx];
+            const itv = setInterval(() => {
+                const hp = (isBossWave ? 2000 : 80) + (gameState.wave * (isBossWave ? 1500 : 100));
+                enemies.push({ x:wps[0].x, y:wps[0].y, hp, maxHp:hp, baseSpd: (isBossWave ? 0.5 : 1.2) + (gameState.wave * 0.05), wp:0, isBoss:isBossWave, frozen: 0, slowFactor: 1 });
+                if (++c >= (isBossWave ? 1 : totalEnemies)) clearInterval(itv);
+            }, 800);
+        };
+
+        window.repairCore = () => {
+            if (gameState.repairsLeft > 0 && gameState.health < gameState.maxHealth) {
+                gameState.health = Math.min(gameState.maxHealth, gameState.health + 40);
+                gameState.repairsLeft--;
+                document.getElementById('repairCount').innerText = gameState.repairsLeft;
+                updateUI();
+                showAlert("SYSTEM REPAIRED", "emerald");
+                if (gameState.repairsLeft === 0) document.getElementById('repairBtn').classList.add('hidden');
+            }
+        };
+
+        function gameLoop() {
+            if (!gameActive) return;
+            if (isVip && ++gameState.vipTimer >= 1500) { gameState.money += 300; updateUI(); gameState.vipTimer = 0; }
+            if (gameState.health <= 0) { endGame(false); return; }
+
+            ctx.fillStyle = '#020617'; ctx.fillRect(0,0,1000,700);
+            const wps = mapWays[selectedMapIdx];
+            ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 65; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(wps[0].x, wps[0].y); wps.forEach(w => ctx.lineTo(w.x, w.y)); ctx.stroke();
+
+            if (selectedPlacement) {
+                const t = towerData[selectedPlacement];
+                ctx.beginPath(); ctx.arc(mousePos.x, mousePos.y, t.range, 0, Math.PI*2);
+                ctx.fillStyle = "rgba(34, 211, 238, 0.15)"; ctx.fill();
+                ctx.strokeStyle = "rgba(34, 211, 238, 0.6)"; ctx.lineWidth = 2; ctx.stroke();
+            }
+
+            for(let i=gameState.towers.length-1; i>=0; i--) {
+                const t = gameState.towers[i];
+                if (selectedTowerId === t.id) {
+                    ctx.beginPath(); ctx.arc(t.x, t.y, t.range, 0, Math.PI*2);
+                    ctx.fillStyle = "rgba(255, 255, 255, 0.05)"; ctx.fill();
+                    ctx.strokeStyle = t.color; ctx.lineWidth = 1; ctx.stroke();
+                }
+
+                ctx.shadowBlur = 20; ctx.shadowColor = t.color;
+                ctx.fillStyle = t.color; ctx.beginPath(); ctx.arc(t.x, t.y, 30, 0, Math.PI*2); ctx.fill();
+                ctx.shadowBlur = 0; ctx.fillStyle = 'white'; ctx.font = 'bold 24px Arial'; ctx.textAlign = 'center'; ctx.fillText(t.emoji, t.x, t.y+8);
+                
+                if (t.type === 'wall') {
+                    ctx.fillStyle = '#1e293b'; ctx.fillRect(t.x-25, t.y-45, 50, 6);
+                    ctx.fillStyle = '#10b981'; ctx.fillRect(t.x-25, t.y-45, (t.currentHp/t.currentMaxHp)*50, 6);
+                    if (t.currentHp <= 0) { gameState.towers.splice(i,1); continue; }
+                } else if (t.isLaser) {
+                    const target = enemies.find(e => Math.hypot(e.x-t.x, e.y-t.y) < t.range);
+                    if (target) {
+                        ctx.strokeStyle = t.color; ctx.lineWidth = 4 + Math.sin(Date.now()*0.01)*2;
+                        ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(target.x, target.y); ctx.stroke();
+                        target.hp -= t.currentDmg / 60; if (target.hp <= 0) handleKill(target);
+                    }
+                } else {
+                    if (++t.timer >= t.currentSpd) {
+                        const target = enemies.find(e => Math.hypot(e.x-t.x, e.y-t.y) < t.range);
+                        if (target) { projectiles.push({ x: t.x, y: t.y, target, color: t.color, dmg: t.currentDmg, spd: p_spd(t), type: t.type, isFreeze: t.isFreeze, level: t.level }); t.timer = 0; }
+                    }
+                }
+            }
+            
+            function p_spd(t) { return t.p_spd; }
+
+            for(let i=enemies.length-1; i>=0; i--) {
+                const e = enemies[i];
+                if (e.frozen > 0) { e.frozen--; }
+                else {
+                    const wallHit = gameState.towers.find(t => t.type === 'wall' && Math.hypot(t.x-e.x, t.y-e.y) < 40);
+                    if (wallHit) { 
+                        wallHit.currentHp -= (e.isBoss ? 2 : 0.5); 
+                        e.hp -= (wallHit.currentDmg / 40); 
+                        if (e.hp <= 0) { handleKill(e, i); continue; } 
+                    } else {
+                        const tar = wps[e.wp+1]; const d = Math.hypot(tar.x-e.x, tar.y-e.y);
+                        const moveSpd = e.baseSpd * e.slowFactor;
+                        e.x += (tar.x-e.x)/d * moveSpd; e.y += (tar.y-e.y)/d * moveSpd;
+                        if (d < 5 && ++e.wp >= wps.length-1) { gameState.health -= e.isBoss ? 40 : 10; enemies.splice(i,1); updateUI(); continue; }
+                    }
+                }
+
+                ctx.fillStyle = e.frozen > 0 ? '#00f2ff' : (e.isBoss ? '#fde047' : '#ff003c'); 
+                ctx.beginPath(); ctx.arc(e.x, e.y, e.isBoss ? 35 : 18, 0, Math.PI*2); ctx.fill();
+
+                const barW = e.isBoss ? 80 : 40;
+                ctx.fillStyle = '#1e293b'; ctx.fillRect(e.x - barW/2, e.y - (e.isBoss ? 55 : 30), barW, 5);
+                ctx.fillStyle = '#ff003c'; ctx.fillRect(e.x - barW/2, e.y - (e.isBoss ? 55 : 30), (e.hp / e.maxHp) * barW, 5);
+                
+                if (e.slowFactor < 1) e.slowFactor += 0.005; 
+                if (e.slowFactor > 1) e.slowFactor = 1;
+            }
+
+            for(let i=projectiles.length-1; i>=0; i--) {
+                const p = projectiles[i]; const d = Math.hypot(p.target.x-p.x, p.target.y-p.y);
+                if (d < 15 || !enemies.includes(p.target)) {
+                    if (enemies.includes(p.target)) {
+                        p.target.hp -= p.dmg;
+                        if (p.isFreeze) {
+                            p.target.slowFactor = 0.4;
+                            if (p.level === 3) p.target.frozen = 120;
+                        }
+                        if (p.type === 'boom' || p.type === 'boom_pro') { 
+                            createExplosion(p.x, p.y, p.color); 
+                            const radius = p.type === 'boom_pro' ? 120 : 90;
+                            let hits = 0;
+                            enemies.forEach(ne => { if(Math.hypot(ne.x-p.x, ne.y-p.y) < radius && hits < 4) { ne.hp -= p.dmg*0.4; hits++; } }); 
+                        }
+                        if (p.target.hp <= 0) handleKill(p.target);
+                    }
+                    projectiles.splice(i,1); continue;
+                }
+                p.x += (p.target.x-p.x)/d * p.spd; p.y += (p.target.y-p.y)/d * p.spd;
+                ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI*2); ctx.fill();
+            }
+
+            for(let i=particles.length-1; i>=0; i--) {
+                const p = particles[i]; p.x += p.vx; p.y += p.vy; p.life--;
+                ctx.fillStyle = p.color; ctx.globalAlpha = p.life/50; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+                ctx.globalAlpha = 1; if (p.life <= 0) particles.splice(i,1);
+            }
+
+            const maxWaves = gameState.difficulty === 'easy' ? 20 : 35;
+            if (gameState.isWaveActive && enemies.length === 0) { 
+                gameState.isWaveActive = false; 
+                if (gameState.wave >= maxWaves) { 
+                    setTimeout(() => endGame(true), 1000); 
+                } else { 
+                    gameState.wave++; updateUI(); saveProfile(); 
+                }
+            }
+            requestAnimationFrame(gameLoop);
+        }
+
+        function handleKill(enemy, forcedIndex = -1) {
+            const idx = forcedIndex !== -1 ? forcedIndex : enemies.indexOf(enemy);
+            if (idx === -1) return;
+            enemies.splice(idx,1);
+            gameState.money += enemy.isBoss ? 600 : 100;
+            globalCoins += enemy.isBoss ? 30 : 5;
+            updateUI(); updateMenuUI();
+        }
+
+        async function endGame(won) {
+            if (!gameActive) return;
+            gameActive = false;
+            document.getElementById('gameResult').classList.remove('hidden');
+            const reward = won ? (gameState.difficulty === 'easy' ? 1000 : 2500) : 0;
+            if (won) {
+                globalCoins += reward; await saveProfile();
+                document.getElementById('resultTitle').innerText = "MISSION SUCCESS";
+                document.getElementById('resultReward').innerText = `+${reward} NEONCOINS RECEIVED`;
+            } else {
+                document.getElementById('resultTitle').innerText = "SYSTEM BREACHED";
+                document.getElementById('resultReward').innerText = "";
+            }
+        }
+    </script>
+</body>
+</html>
+
