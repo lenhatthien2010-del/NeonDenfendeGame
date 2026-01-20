@@ -274,8 +274,9 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // Global variables provided by environment
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'neon-defend-extreme-v1';
         let firebaseConfig, app, auth, db;
         
@@ -310,11 +311,72 @@
 
         let user = null, isVip = false, globalCoins = 0, usedCodes = [], gameActive = false, selectedMapIdx = 0, selectedDiffVal = 'easy', ownedUnits = ['scout', 'sniper', 'boom', 'wall'];
         let temporaryUnits = []; 
-        let questData = { progress: 0, lastReset: Date.now(), completed: false };
+        let questData = { progress: 0, lastReset: 0, completed: false };
         let gameState = { money: 2000, wave: 1, towers: [], health: 100, maxHealth: 100, isWaveActive: false, difficulty: 'easy', vipTimer: 0, repairsLeft: 2 };
         let enemies = [], projectiles = [], particles = [];
         let selectedPlacement = null, selectedTowerId = null, mousePos = { x: 0, y: 0 };
 
+        // --- CORE DATA SAVING FUNCTION ---
+        async function saveProfile() {
+            if (!auth.currentUser || !db) return;
+            try {
+                // RULE 1: Use strict paths
+                const userDocRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'profile');
+                await setDoc(userDocRef, { 
+                    coins: globalCoins, 
+                    isVip: isVip, 
+                    ownedUnits: ownedUnits, 
+                    usedCodes: usedCodes, 
+                    questData: questData,
+                    temporaryUnits: temporaryUnits // Save temp units too just in case
+                }, { merge: true });
+            }
+            catch(e) { console.error("Save error:", e); }
+        }
+
+        // --- AUTH & DATA LOADING ---
+        const initAuth = async () => {
+            if (!auth) return;
+            try {
+                // RULE 3: Auth before queries
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch(e) { console.error("Auth error:", e); }
+        };
+        initAuth();
+
+        onAuthStateChanged(auth, async (u) => {
+            user = u; 
+            if (!user) return;
+            
+            try {
+                // Fetch existing data
+                const userDocRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile');
+                const snap = await getDoc(userDocRef);
+                
+                if (snap.exists()) {
+                    const data = snap.data(); 
+                    globalCoins = data.coins !== undefined ? data.coins : 0; 
+                    isVip = data.isVip || false; 
+                    ownedUnits = data.ownedUnits || ['scout', 'sniper', 'boom', 'wall'];
+                    usedCodes = data.usedCodes || [];
+                    questData = data.questData || { progress: 0, lastReset: 0, completed: false };
+                    temporaryUnits = data.temporaryUnits || [];
+                } else {
+                    // Initialize new profile
+                    await saveProfile();
+                }
+            } catch(e) { console.error("Data fetch error:", e); }
+            
+            checkQuestReset();
+            updateMenuUI();
+            renderInGameShop();
+        });
+
+        // --- UI LOADING SCREEN ---
         window.addEventListener('DOMContentLoaded', () => {
             const bar = document.getElementById('loadingBar');
             let progress = 0;
@@ -367,37 +429,6 @@
             { id: 'boom_pro', name: 'BOOM (Match)', emoji: '💥', cost: 300, desc: 'Single match use.' }
         ];
 
-        const initAuth = async () => {
-            if (!auth) return;
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token);
-                else await signInAnonymously(auth);
-            } catch(e) { console.error("Auth error:", e); }
-        };
-        initAuth();
-
-        if (auth) {
-            onAuthStateChanged(auth, async (u) => {
-                user = u; if (!user) return;
-                try {
-                    const snap = await getDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'data'));
-                    if (snap.exists()) {
-                        const data = snap.data(); 
-                        globalCoins = typeof data.coins !== 'undefined' ? data.coins : 0; 
-                        isVip = !!data.isVip; 
-                        ownedUnits = data.ownedUnits || ['scout', 'sniper', 'boom', 'wall'];
-                        usedCodes = data.usedCodes || [];
-                        questData = data.questData || { progress: 0, lastReset: Date.now(), completed: false };
-                    } else {
-                        await saveProfile();
-                    }
-                } catch(e) { console.error("Data fetch error:", e); }
-                checkQuestReset();
-                updateMenuUI();
-                renderInGameShop();
-            });
-        }
-
         function checkQuestReset() {
             const now = Date.now();
             const oneDay = 24 * 60 * 60 * 1000;
@@ -416,8 +447,8 @@
             const status = document.getElementById('questStatus');
             const timer = document.getElementById('questResetTime');
             
-            if (!bar || !progress) return;
-            
+            if (!bar) return;
+
             bar.style.width = (questData.progress / 3 * 100) + '%';
             progress.innerText = `${questData.progress} / 3`;
             
@@ -429,14 +460,11 @@
                 status.className = `text-[10px] font-bold ${questData.progress >= 3 ? 'text-cyan-400' : 'text-yellow-500'}`;
             }
 
-            const updateTimer = () => {
-                const timeLeft = (questData.lastReset + (24*60*60*1000)) - Date.now();
-                if (timeLeft <= 0) { checkQuestReset(); return; }
-                const h = Math.floor(timeLeft / 3600000);
-                const m = Math.floor((timeLeft % 3600000) / 60000);
-                timer.innerText = `Reset in: ${h}h ${m}m`;
-            };
-            updateTimer();
+            const timeLeft = (questData.lastReset + (24*60*60*1000)) - Date.now();
+            if (timeLeft <= 0) { checkQuestReset(); return; }
+            const h = Math.floor(timeLeft / 3600000);
+            const m = Math.floor((timeLeft % 3600000) / 60000);
+            timer.innerText = `Reset in: ${h}h ${m}m`;
         }
         setInterval(updateQuestUI, 60000);
 
@@ -518,9 +546,7 @@
             const shop = document.getElementById('shop'); shop.innerHTML = "";
             const combinedUnits = Array.from(new Set([...ownedUnits, ...temporaryUnits]));
             combinedUnits.forEach(key => {
-                const t = towerData[key]; 
-                if(!t) return;
-                const card = document.createElement('div');
+                const t = towerData[key]; const card = document.createElement('div');
                 card.className = 'unit-card';
                 card.innerHTML = `<div class="text-xl">${t.emoji}</div><div class="flex flex-col text-center mt-0.5"><span class="text-[8px] font-bold text-cyan-400">${t.name}</span><span class="text-[10px] font-black text-yellow-500">$${Math.floor(isVip ? t.price*0.8 : t.price)}</span></div>`;
                 card.onclick = (e) => { 
@@ -532,13 +558,11 @@
         }
 
         function updateMenuUI() {
-            const globalCoinsEl = document.getElementById('globalCoins');
-            if(globalCoinsEl) globalCoinsEl.innerText = globalCoins;
+            document.getElementById('globalCoins').innerText = globalCoins;
             const vipLabel = document.getElementById('vipLabel');
-            if (isVip && vipLabel) {
+            if (isVip) {
                 vipLabel.innerHTML = "👑 VIP Rank"; vipLabel.className = "text-sm font-bold vip-rank";
-                const buyVipBtn = document.getElementById('buyVipBtn');
-                if(buyVipBtn) buyVipBtn.style.display = 'none';
+                document.getElementById('buyVipBtn').style.display = 'none';
             }
             updateQuestUI();
         }
@@ -574,20 +598,6 @@
             if (globalCoins >= 3000 && !isVip) { globalCoins -= 3000; isVip = true; await saveProfile(); updateMenuUI(); showAlert("VIP ACTIVATED", "emerald"); playUpgrade(); }
             else showAlert("INSUFFICIENT COINS", "red");
         };
-
-        async function saveProfile() {
-            if (!user || !db) return;
-            try { 
-                await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'data'), { 
-                    coins: globalCoins, 
-                    isVip: isVip, 
-                    ownedUnits: ownedUnits, 
-                    usedCodes: usedCodes, 
-                    questData: questData 
-                }, { merge: true }); 
-            }
-            catch(e) { console.error("Save error:", e); }
-        }
 
         window.startGame = () => {
             playClick();
@@ -824,7 +834,7 @@
                 else {
                     const wallHit = gameState.towers.find(t => t.type === 'wall' && Math.hypot(t.x-e.x, t.y-e.y) < 40);
                     if (wallHit) { 
-                        if (e.isUltimate) { wallHit.currentHp = 0; }
+                        if (e.isUltimate) { wallHit.currentHp = 0; } 
                         else { wallHit.currentHp -= (e.isBoss ? 2 : 0.5); e.hp -= (wallHit.currentDmg / 40); }
                         if (e.hp <= 0) { handleKill(e, i); continue; } 
                     } 
@@ -872,16 +882,19 @@
         }
 
         function handleKill(enemy, forcedIndex = -1) {
-            const idx = forcedIndex !== -1 ? forcedIndex : enemies.indexOf(enemy); if (idx === -1) return;
+            const idx = forcedIndex !== -1 ? forcedIndex : enemies.indexOf(enemy); 
+            if (idx === -1) return;
             enemies.splice(idx,1); 
             gameState.money += enemy.isUltimate ? 3000 : (enemy.isBoss ? 600 : 100); 
             globalCoins += enemy.isUltimate ? 100 : (enemy.isBoss ? 30 : 5); 
-            updateUI(); updateMenuUI();
-            saveProfile(); 
+            updateUI(); 
+            updateMenuUI();
+            saveProfile(); // Persistent coin save
         }
 
         async function endGame(won) {
-            if (!gameActive) return; gameActive = false; 
+            if (!gameActive) return; 
+            gameActive = false; 
             document.getElementById('gameHud').classList.add('hidden');
             document.getElementById('gameShop').style.display = 'none';
             document.getElementById('upgradeMenu').classList.add('hidden');
@@ -898,19 +911,20 @@
                         showAlert("DAILY QUEST COMPLETED: +500 NeonCoins!", "emerald");
                     }
                 }
-                await saveProfile(); 
                 document.getElementById('resultTitle').innerText = "MISSION SUCCESS"; 
                 document.getElementById('resultTitle').style.color = "#10b981"; 
                 document.getElementById('resultReward').innerText = `+${reward} NeonCoins RECEIVED`; 
-                updateMenuUI(); 
             } 
             else { 
                 document.getElementById('resultTitle').innerText = "SYSTEM BREACHED"; 
                 document.getElementById('resultTitle').style.color = "#ff003c"; 
                 document.getElementById('resultReward').innerText = "RETRY TO EARN COINS"; 
-                await saveProfile();
             }
+
+            // Clear temp units after match
             temporaryUnits = [];
+            await saveProfile(); 
+            updateMenuUI(); 
             resize();
         }
     </script>
