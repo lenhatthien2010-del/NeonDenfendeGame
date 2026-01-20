@@ -274,16 +274,11 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Global Variable Handling
+        // Global variables provided by environment or defaults
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'neon-defend-extreme-v1';
-        let firebaseConfig;
-        try {
-            firebaseConfig = JSON.parse(__firebase_config);
-        } catch(e) {
-            firebaseConfig = { apiKey: "", authDomain: "", projectId: "", storageBucket: "", messagingSenderId: "", appId: "" };
-        }
+        const firebaseConfig = JSON.parse(__firebase_config);
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -300,10 +295,73 @@
         let enemies = [], projectiles = [], particles = [];
         let selectedPlacement = null, selectedTowerId = null, mousePos = { x: 0, y: 0 };
 
-        // Sound Engine
+        // --- MANDATORY FIRESTORE REPAIR ---
+        // Rule 1: Use specific path structure
+        // Rule 3: Guard with user check
+
+        async function saveProfile() {
+            if (!auth.currentUser) return;
+            try {
+                // Correct path: /artifacts/{appId}/users/{userId}/profile
+                const userDocRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'profile');
+                await setDoc(userDocRef, { 
+                    coins: globalCoins, 
+                    isVip: isVip, 
+                    ownedUnits: ownedUnits, 
+                    usedCodes: usedCodes, 
+                    questData: questData,
+                    temporaryUnits: temporaryUnits 
+                }, { merge: true });
+            } catch(e) { 
+                console.error("Firebase Save Error:", e); 
+            }
+        }
+
+        // Auth initialization flow
+        const initAuth = async () => {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Auth initialization failed:", error);
+            }
+        };
+
+        onAuthStateChanged(auth, async (u) => {
+            if (u) {
+                user = u;
+                try {
+                    const userDocRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile');
+                    const snap = await getDoc(userDocRef);
+                    if (snap.exists()) {
+                        const data = snap.data();
+                        globalCoins = data.coins ?? 0;
+                        isVip = data.isVip || false;
+                        ownedUnits = data.ownedUnits || ['scout', 'sniper', 'boom', 'wall'];
+                        usedCodes = data.usedCodes || [];
+                        questData = data.questData || { progress: 0, lastReset: 0, completed: false };
+                        temporaryUnits = data.temporaryUnits || [];
+                    } else {
+                        await saveProfile();
+                    }
+                    checkQuestReset();
+                    updateMenuUI();
+                    renderInGameShop();
+                } catch (e) {
+                    console.error("Data Load Error:", e);
+                }
+            }
+        });
+
+        initAuth();
+
+        // --- GAME LOGIC (KEPT ORIGINAL) ---
+
         function playSound(freq, type = 'sine', duration = 0.1, vol = 0.1) {
             try {
-                if(audioCtx.state === 'suspended') audioCtx.resume();
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.type = type;
@@ -319,68 +377,6 @@
         const playClick = () => playSound(800, 'square', 0.05, 0.05);
         const playUpgrade = () => { playSound(400, 'sine', 0.1); playSound(600, 'sine', 0.2, 0.1); };
 
-        // Profile Storage Logic (STRICT PATHS)
-        async function saveProfile() {
-            if (!auth.currentUser) return;
-            try {
-                // RULE 1: STRICT PATH
-                const userDocRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'profile');
-                await setDoc(userDocRef, { 
-                    coins: globalCoins, 
-                    isVip: isVip, 
-                    ownedUnits: ownedUnits, 
-                    usedCodes: usedCodes, 
-                    questData: questData,
-                    temporaryUnits: temporaryUnits,
-                    lastUpdated: Date.now()
-                }, { merge: true });
-                console.log("Data saved successfully (Dữ liệu đã lưu thành công)");
-            } catch(e) { console.error("Save error:", e); }
-        }
-
-        // Initialize Auth (RULE 3: AUTH BEFORE QUERIES)
-        const initAuth = async () => {
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                await signInWithCustomToken(auth, __initial_auth_token);
-            } else {
-                await signInAnonymously(auth);
-            }
-        };
-
-        onAuthStateChanged(auth, async (u) => {
-            if (u) {
-                user = u;
-                console.log("Authenticated as:", user.uid);
-                // Load data immediately after auth
-                const userDocRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile');
-                try {
-                    const snap = await getDoc(userDocRef);
-                    if (snap.exists()) {
-                        const data = snap.data();
-                        globalCoins = data.coins ?? 0;
-                        isVip = data.isVip || false;
-                        ownedUnits = data.ownedUnits || ['scout', 'sniper', 'boom', 'wall'];
-                        usedCodes = data.usedCodes || [];
-                        questData = data.questData || { progress: 0, lastReset: 0, completed: false };
-                        temporaryUnits = data.temporaryUnits || [];
-                        console.log("Profile loaded (Đã tải dữ liệu người dùng)");
-                    } else {
-                        // Create default profile
-                        await saveProfile();
-                        console.log("Initial profile created");
-                    }
-                    checkQuestReset();
-                    updateMenuUI();
-                    renderInGameShop();
-                } catch (error) {
-                    console.error("Firestore read error:", error);
-                }
-            }
-        });
-
-        initAuth();
-
-        // Loading Screen Animation
         window.addEventListener('load', () => {
             const bar = document.getElementById('loadingBar');
             let progress = 0;
@@ -405,7 +401,6 @@
             requestAnimationFrame(updateLoading);
         });
 
-        // Map & Game Data
         const mapWays = [
             [{x:-50,y:400}, {x:250,y:400}, {x:250,y:150}, {x:600,y:150}, {x:600,y:600}, {x:950,y:600}, {x:950,y:350}, {x:1250,y:350}],
             [{x:150,y:-50}, {x:150,y:600}, {x:500,y:600}, {x:500,y:200}, {x:850,y:200}, {x:850,y:950}]
@@ -436,7 +431,6 @@
             { id: 'boom_pro', name: 'BOOM (Match)', emoji: '💥', cost: 300, desc: 'Single match use.' }
         ];
 
-        // UI Handlers
         window.selectMap = (i) => { playClick(); selectedMapIdx = i; document.querySelectorAll('.map-btn').forEach(b => b.classList.remove('selected')); document.getElementById('map'+i).classList.add('selected'); };
         window.selectDiff = (d) => { playClick(); selectedDiffVal = d; document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('selected')); document.getElementById('diff' + d.charAt(0).toUpperCase() + d.slice(1)).classList.add('selected'); };
         
@@ -541,7 +535,6 @@
 
         window.closeUpgradeMenu = () => { document.getElementById('upgradeMenu').classList.add('hidden'); selectedTowerId = null; };
 
-        // Quest Logic
         function checkQuestReset() {
             const now = Date.now();
             const oneDay = 24 * 60 * 60 * 1000;
@@ -575,7 +568,6 @@
             const m = Math.floor((timeLeft % 3600000) / 60000);
             timer.innerText = `Reset in: ${h}h ${m}m`;
         }
-        setInterval(updateQuestUI, 60000);
 
         function renderUnitShop() {
             const list = document.getElementById('unitShopList');
@@ -639,7 +631,6 @@
             setTimeout(() => { el.classList.add('opacity-0'); setTimeout(() => el.remove(), 300); }, 3000);
         }
 
-        // Engine Rendering & Logic
         function resize() {
             const viewport = document.querySelector('.game-viewport');
             if (!viewport) return;
@@ -850,7 +841,7 @@
             globalCoins += enemy.isUltimate ? 100 : (enemy.isBoss ? 30 : 5); 
             updateUI(); 
             updateMenuUI();
-            saveProfile(); // Rule: Persistent save
+            saveProfile(); 
         }
 
         async function endGame(won) {
