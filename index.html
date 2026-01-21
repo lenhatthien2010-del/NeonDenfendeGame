@@ -277,11 +277,19 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'neon-defend-extreme-v1';
+        // Khắc phục: Kiểm tra biến môi trường trước khi parse
+        const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'neon-defend-extreme-local';
+        
+        let db = null;
+        let auth = null;
+
+        if (firebaseConfigStr) {
+            const firebaseConfig = JSON.parse(firebaseConfigStr);
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        }
 
         // --- GLOBAL VARIABLES ---
         let user = null;
@@ -290,7 +298,7 @@
         let usedCodes = [];
         let ownedUnits = ['scout', 'sniper', 'boom', 'wall'];
         let temporaryUnits = []; 
-        let questData = { progress: 0, lastReset: 0, completed: false };
+        let questData = { progress: 0, lastReset: Date.now(), completed: false };
 
         // Game State
         let gameActive = false, selectedMapIdx = 0, selectedDiffVal = 'easy';
@@ -300,10 +308,11 @@
 
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let audioCtx = null; // Khởi tạo trễ sau tương tác
 
         // --- SOUND SYSTEM ---
         function playSound(freq, type = 'sine', duration = 0.1, vol = 0.1) {
+            if (!audioCtx) return; // Không phát nếu chưa có context
             try {
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
@@ -353,45 +362,71 @@
 
         // --- AUTH & DATA PERSISTENCE ---
         const initGame = async () => {
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                await signInWithCustomToken(auth, __initial_auth_token);
-            } else {
-                await signInAnonymously(auth);
+            // Local fallback if no firebase
+            if (!auth) {
+                loadLocalData();
+                return;
             }
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch(e) { loadLocalData(); }
         };
 
-        onAuthStateChanged(auth, (u) => {
-            if (u) {
-                user = u;
-                // REAL-TIME DATA SYNC
-                onSnapshot(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'data'), (snap) => {
-                    if (snap.exists()) {
-                        const data = snap.data();
-                        globalCoins = data.coins ?? 0;
-                        isVip = data.isVip ?? false;
-                        ownedUnits = data.ownedUnits ?? ['scout', 'sniper', 'boom', 'wall'];
-                        usedCodes = data.usedCodes ?? [];
-                        questData = data.questData ?? { progress: 0, lastReset: Date.now(), completed: false };
-                    } else {
-                        saveProfile(); // Create initial doc
-                    }
-                    updateMenuUI();
-                    renderInGameShop();
-                });
+        function loadLocalData() {
+            const local = localStorage.getItem('neon_defense_save');
+            if (local) {
+                const data = JSON.parse(local);
+                globalCoins = data.coins ?? 0;
+                isVip = data.isVip ?? false;
+                ownedUnits = data.ownedUnits ?? ['scout', 'sniper', 'boom', 'wall'];
+                usedCodes = data.usedCodes ?? [];
+                questData = data.questData ?? { progress: 0, lastReset: Date.now(), completed: false };
             }
-        });
+            updateMenuUI();
+            renderInGameShop();
+        }
+
+        if (auth) {
+            onAuthStateChanged(auth, (u) => {
+                if (u) {
+                    user = u;
+                    onSnapshot(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'data'), (snap) => {
+                        if (snap.exists()) {
+                            const data = snap.data();
+                            globalCoins = data.coins ?? 0;
+                            isVip = data.isVip ?? false;
+                            ownedUnits = data.ownedUnits ?? ['scout', 'sniper', 'boom', 'wall'];
+                            usedCodes = data.usedCodes ?? [];
+                            questData = data.questData ?? { progress: 0, lastReset: Date.now(), completed: false };
+                        } else {
+                            saveProfile(); 
+                        }
+                        updateMenuUI();
+                        renderInGameShop();
+                    });
+                }
+            });
+        }
 
         async function saveProfile() {
-            if (!user) return;
+            // Luôn lưu local trước
+            const saveData = {
+                coins: globalCoins,
+                isVip: isVip,
+                ownedUnits: ownedUnits,
+                usedCodes: usedCodes,
+                questData: questData,
+                updatedAt: Date.now()
+            };
+            localStorage.setItem('neon_defense_save', JSON.stringify(saveData));
+
+            if (!user || !db) return;
             try {
-                await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'data'), {
-                    coins: globalCoins,
-                    isVip: isVip,
-                    ownedUnits: ownedUnits,
-                    usedCodes: usedCodes,
-                    questData: questData,
-                    updatedAt: Date.now()
-                }, { merge: true });
+                await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'data'), saveData, { merge: true });
             } catch (e) { console.error("Cloud save failed:", e); }
         }
 
@@ -477,16 +512,24 @@
 
         // --- SHOP & ACTIONS ---
         window.toggleUnitShop = (show) => {
+            initAudio(); // Kích hoạt âm thanh khi tương tác
             playClick();
             document.getElementById('unitShopModal').style.display = show ? 'flex' : 'none';
             if (show) renderUnitShop();
         };
 
         window.toggleNormalShop = (show) => {
+            initAudio();
             playClick();
             document.getElementById('normalShopModal').style.display = show ? 'flex' : 'none';
             if (show) renderNormalShop();
         };
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
 
         function renderUnitShop() {
             const list = document.getElementById('unitShopList');
@@ -588,6 +631,7 @@
         window.selectDiff = (d) => { playClick(); selectedDiffVal = d; document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('selected')); document.getElementById('diff' + d.charAt(0).toUpperCase() + d.slice(1)).classList.add('selected'); };
 
         window.startGame = () => {
+            initAudio();
             playClick();
             document.getElementById('mainMenu').classList.add('hidden'); 
             document.getElementById('gameHud').classList.remove('hidden'); 
