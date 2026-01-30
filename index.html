@@ -291,18 +291,18 @@
         const ctx = canvas.getContext('2d');
 
         const towerData = {
-            scout: { type: 'scout', name: "GUN", price: 150, range: 160, dmg: 40, maxDmg: 250, spd: 60, maxSpd: 30, color: "#00f2ff", emoji: "🔫", p_spd: 12, upgradeInit: 150, maxLevel: 3 },
-            sniper: { type: 'sniper', name: "SNIPER", price: 500, range: 450, dmg: 100, maxDmg: 400, spd: 240, maxSpd: 30, color: "#bc13fe", emoji: "🎯", p_spd: 22, upgradeInit: 300, maxLevel: 3 },
-            boom: { type: 'boom', name: "ROCKET", price: 850, range: 220, dmg: 200, maxDmg: 700, spd: 200, maxSpd: 60, color: "#ff003c", emoji: "🚀", p_spd: 8, upgradeInit: 500, maxLevel: 3 },
-            ak47: { type: 'ak47', name: "MINI GUN", price: 1300, range: 250, dmg: 120, maxDmg: 800, spd: 60, maxSpd: 0, color: "#fde047", emoji: "🔫", p_spd: 15, upgradeInit: 1000, maxLevel: 3 },
-            wall: { type: 'wall', name: "WALL", price: 1500, range: 60, dmg: 30, maxDmg: 30, spd: 0, color: "#10b981", emoji: "🚧", p_spd: 0, upgradeInit: 800, hp: 500, maxHp: 1200, maxLevel: 3 },
-            lazer: { type: 'lazer', name: "LAZER", price: 2000, range: 300, dmg: 10, maxDmg: 1000, spd: 1, color: "#ff0000", emoji: "⚡", p_spd: 0, upgradeInit: 1000, isLaser: true, maxLevel: 3 },
-            freeze: { type: 'freeze', name: "FREEZE", price: 2200, range: 250, dmg: 20, maxDmg: 500, spd: 60, maxSpd: 60, color: "#00ffff", emoji: "❄️", p_spd: 10, upgradeInit: 1200, isFreeze: true, maxLevel: 3 },
-            boom_pro: { type: 'boom_pro', name: "BOOM", price: 3000, range: 350, dmg: 400, maxDmg: 1200, spd: 120, maxSpd: 120, color: "#ff8800", emoji: "💥", p_spd: 10, upgradeInit: 1500, isArea: true, maxLevel: 3 },
+            scout: { type: 'scout', name: "GUN", price: 150, range: 160, dmg: 40, maxDmg: 250, spd: 60, maxSpd: 30, color: "#00f2ff", emoji: "🔫", p_spd: 12, upgradeInit: 150, maxLevel: 3, limit: Infinity },
+            sniper: { type: 'sniper', name: "SNIPER", price: 500, range: 450, dmg: 100, maxDmg: 400, spd: 240, maxSpd: 30, color: "#bc13fe", emoji: "🎯", p_spd: 22, upgradeInit: 300, maxLevel: 3, limit: 6 },
+            boom: { type: 'boom', name: "ROCKET", price: 850, range: 220, dmg: 200, maxDmg: 700, spd: 200, maxSpd: 60, color: "#ff003c", emoji: "🚀", p_spd: 8, upgradeInit: 500, maxLevel: 3, limit: 6 },
+            ak47: { type: 'ak47', name: "MINI GUN", price: 1300, range: 250, dmg: 120, maxDmg: 800, spd: 60, maxSpd: 0, color: "#fde047", emoji: "🔫", p_spd: 15, upgradeInit: 1000, maxLevel: 3, limit: 6 },
+            wall: { type: 'wall', name: "WALL", price: 1500, range: 60, dmg: 30, maxDmg: 30, spd: 0, color: "#10b981", emoji: "🚧", p_spd: 0, upgradeInit: 800, hp: 500, maxHp: 1200, maxLevel: 3, limit: 6 },
+            lazer: { type: 'lazer', name: "LAZER", price: 2000, range: 300, dmg: 10, maxDmg: 1000, spd: 1, color: "#ff0000", emoji: "⚡", p_spd: 0, upgradeInit: 1000, isLaser: true, maxLevel: 3, limit: 6 },
+            freeze: { type: 'freeze', name: "FREEZE", price: 2200, range: 250, dmg: 20, maxDmg: 500, spd: 60, maxSpd: 60, color: "#00ffff", emoji: "❄️", p_spd: 10, upgradeInit: 1200, isFreeze: true, maxLevel: 3, limit: 3 },
+            boom_pro: { type: 'boom_pro', name: "BOOM", price: 3000, range: 350, dmg: 400, maxDmg: 1200, spd: 120, maxSpd: 120, color: "#ff8800", emoji: "💥", p_spd: 10, upgradeInit: 1500, isArea: true, maxLevel: 3, limit: 6 },
             electric: { 
                 type: 'electric', name: "ELECTRIC", price: 4000, range: 320, 
                 dmg: 800, maxDmg: 2500, spd: 1, maxSpd: 1, color: "#4ade80", 
-                emoji: "⚡️✨️", p_spd: 0, upgradeInit: 1000, isElectric: true, maxLevel: 5 
+                emoji: "⚡️✨️", p_spd: 0, upgradeInit: 1000, isElectric: true, maxLevel: 5, limit: 2 
             }
         };
 
@@ -385,7 +385,6 @@
         };
 
         function loadLocalData() {
-            // Danh sách các key cũ và mới để kiểm tra tính liên tục
             const saveKeys = ['neon_defense_save_v1.4', 'neon_defense_save_v1.3', 'neon_defense_save_v1.2', 'neon_defense_save_v1.1', 'NEON_DEFENDE_SERIES_MAIN_DATA'];
             let foundData = null;
 
@@ -626,7 +625,16 @@
         canvas.addEventListener('pointerdown', (e) => {
             const rect = canvas.getBoundingClientRect(); const x = (e.clientX - rect.left) * (canvas.width / rect.width), y = (e.clientY - rect.top) * (canvas.height / rect.height);
             if (selectedPlacement) {
-                const t = towerData[selectedPlacement]; const price = Math.floor(isVip ? t.price * 0.8 : t.price);
+                const t = towerData[selectedPlacement]; 
+                const price = Math.floor(isVip ? t.price * 0.8 : t.price);
+                
+                // --- LIMIT RULE IMPLEMENTATION ---
+                const currentCount = gameState.towers.filter(ot => ot.type === t.type).length;
+                if (currentCount >= t.limit) {
+                    showAlert(`LIMIT REACHED: MAX ${t.limit} ${t.name}`, false);
+                    return;
+                }
+
                 if (gameState.money >= price) {
                     const near = isNearPath(x, y, 40), canPlace = (t.type === 'wall' ? near : !near) && !gameState.towers.some(ot => Math.hypot(ot.x-x, ot.y-y) < 55);
                     if (canPlace) { 
@@ -890,15 +898,46 @@
             const menu = document.getElementById('upgradeMenu');
             const skillMenu = document.getElementById('skillMenu');
             document.getElementById('unitName').innerText = tower.name + (tower.isV2 ? " v2" : "");
+            
             if (tower.isV2) { menu.classList.add('v2-active'); skillMenu.classList.add('v2-active'); } 
             else { menu.classList.remove('v2-active'); skillMenu.classList.remove('v2-active'); }
+            
             const maxLvl = tower.maxLevel || 3;
-            let stats = (tower.type === 'wall' ? `Reflect: ${tower.currentDmg} | HP: ${Math.floor(tower.currentHp)}` : `Dmg: ${tower.currentDmg} | Range: ${tower.range}`);
-            document.getElementById('unitStats').innerText = stats; document.getElementById('upgradeLevel').innerText = `Upgrades: ${tower.level}/${maxLvl}`;
-            const sellVal = Math.floor(tower.totalInvested * 0.6); document.getElementById('sellValue').innerText = `$${sellVal}`;
+            
+            // --- CONVERT SPEED TO READABLE NUMBER (X / 60) ---
+            const readableSpd = tower.currentSpd === 0 ? 0 : (tower.currentSpd / 60).toFixed(1);
+            let stats = `Dmg: ${tower.currentDmg} | Speed: ${readableSpd}`;
+            
+            document.getElementById('unitStats').innerText = stats; 
+            document.getElementById('upgradeLevel').innerText = `Upgrades: ${tower.level}/${maxLvl}`;
+            
+            const sellVal = Math.floor(tower.totalInvested * 0.6); 
+            document.getElementById('sellValue').innerText = `$${sellVal}`;
+            
             const upBtn = document.getElementById('upgradeBtn');
             if (tower.level >= maxLvl) { upBtn.innerText = "MAX POWER"; upBtn.onclick = null; }
-            else { upBtn.innerText = `UPGRADE ($${tower.upgradeCost})`; upBtn.onclick = () => { if (gameState.money >= tower.upgradeCost) { gameState.money -= tower.upgradeCost; tower.level++; if (tower.type !== 'wall') { tower.currentDmg += Math.floor((tower.maxDmg - tower.dmg)/maxLvl); tower.currentSpd = Math.max(tower.maxSpd, tower.currentSpd - Math.floor((tower.spd - tower.maxSpd)/maxLvl)); tower.range += 40; } else { tower.currentMaxHp += 200; tower.currentHp += 200; } tower.totalInvested += tower.upgradeCost; tower.upgradeCost = Math.floor(tower.upgradeCost * 1.5); updateUI(); openUpgrade(tower, sx, sy); } else showAlert("INSUFFICIENT COINS", false); }; }
+            else { 
+                upBtn.innerText = `UPGRADE ($${tower.upgradeCost})`; 
+                upBtn.onclick = () => { 
+                    if (gameState.money >= tower.upgradeCost) { 
+                        gameState.money -= tower.upgradeCost; 
+                        tower.level++; 
+                        if (tower.type !== 'wall') { 
+                            tower.currentDmg += Math.floor((tower.maxDmg - tower.dmg)/maxLvl); 
+                            tower.currentSpd = Math.max(tower.maxSpd, tower.currentSpd - Math.floor((tower.spd - tower.maxSpd)/maxLvl)); 
+                            tower.range += 40; 
+                        } else { 
+                            tower.currentMaxHp += 200; 
+                            tower.currentHp += 200; 
+                        } 
+                        tower.totalInvested += tower.upgradeCost; 
+                        tower.upgradeCost = Math.floor(tower.upgradeCost * 1.5); 
+                        updateUI(); 
+                        openUpgrade(tower, sx, sy); 
+                    } else showAlert("INSUFFICIENT COINS", false); 
+                }; 
+            }
+            
             menu.classList.remove('hidden');
             if (tower.isV2) skillMenu.classList.remove('hidden'); else skillMenu.classList.add('hidden');
             document.getElementById('sellBtn').onclick = () => { gameState.money += sellVal; gameState.towers = gameState.towers.filter(t => t.id !== tower.id); updateUI(); window.closeUpgradeMenu(); };
