@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>COBAC PHELIEU - Shop & Kỹ năng</title>
+    <title>LEGACY COLLECTION - Admin Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
@@ -16,927 +16,451 @@
             touch-action: manipulation;
         }
         
-        .rarity-glow-godly { box-shadow: 0 0 30px #eab308; border: 2px solid #eab308; }
-        .rarity-glow-mythic { box-shadow: 0 0 30px #ef4444; border: 2px solid #ef4444; }
-        
-        .modal-bg { 
-            backdrop-filter: blur(12px); 
-            background-color: rgba(0, 0, 0, 0.85); 
+        /* Rarity Glows */
+        .rarity-glow-godly { 
+            box-shadow: 0 0 40px rgba(234, 179, 8, 0.6); 
+            border: 2px solid #eab308;
+            animation: godly-pulse 2s infinite alternate;
+        }
+        @keyframes godly-pulse {
+            from { box-shadow: 0 0 20px rgba(234, 179, 8, 0.4); }
+            to { box-shadow: 0 0 50px rgba(234, 179, 8, 0.8); }
         }
 
-        @keyframes float { 
-            0% { transform: translateY(0px); } 
-            50% { transform: translateY(-15px); } 
-            100% { transform: translateY(0px); } 
-        }
-        .animate-float { animation: float 4s ease-in-out infinite; }
+        /* Border colors for unowned items based on rarity */
+        .border-common { border-color: #94a3b8; } /* Slate-400 */
+        .border-rare { border-color: #3b82f6; }   /* Blue-500 */
+        .border-epic { border-color: #a855f7; }   /* Purple-500 */
+        .border-legendary { border-color: #f97316; } /* Orange-500 */
+        .border-mythic { border-color: #ef4444; }    /* Red-500 */
+        .border-godly { border-color: #eab308; }     /* Yellow-500 */
+        .border-summer { border-color: #10b981; }    /* Emerald-500 */
 
-        .card-shimmer { position: relative; overflow: hidden; }
-        .card-shimmer::after { 
-            content: ""; 
-            position: absolute; 
-            top: -50%; 
-            left: -150%; 
-            width: 200%; 
-            height: 200%; 
-            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.2), transparent); 
-            transform: rotate(45deg); 
-            transition: 0.8s; 
-        }
-        .card-shimmer:hover::after { left: 150%; }
-
-        #inventory-grid::-webkit-scrollbar, #collection-grid::-webkit-scrollbar, #shop-items-container::-webkit-scrollbar, #main-scroll-area::-webkit-scrollbar { width: 4px; }
-        #shop-items-container::-webkit-scrollbar-thumb, #main-scroll-area::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-        
-        .press-effect:active { transform: scale(0.95); }
-        
-        .rarity-tag {
-            font-size: 0.6rem;
-            letter-spacing: 0.1em;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-weight: 800;
+        .summer-glow {
+            box-shadow: 0 0 30px rgba(16, 185, 129, 0.5);
+            border: 2px solid #10b981;
         }
 
-        #sync-indicator {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            font-size: 10px;
-            font-weight: bold;
-            opacity: 0.5;
-            z-index: 1000;
-        }
-        
-        .stack-badge {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: rgba(255,255,255,0.15);
-            padding: 2px 6px;
-            border-radius: 6px;
-            font-size: 10px;
-            font-weight: 800;
-            backdrop-filter: blur(4px);
+        .roll-anim { animation: roll-bounce 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes roll-bounce {
+            0% { transform: scale(0.8) rotate(-10deg); opacity: 0; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
         }
 
-        .locked-item {
-            filter: brightness(0.6);
-            opacity: 0.6;
-            background: rgba(15, 23, 42, 0.8);
-        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        .notification {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%) translateY(-150%);
-            z-index: 200;
-            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            visibility: hidden;
-            opacity: 0;
+        .btn-interact {
+            transition: all 0.2s ease;
+            active: scale(0.95);
         }
-        .notification.show { 
-            transform: translateX(-50%) translateY(0); 
-            visibility: visible;
-            opacity: 1;
-        }
-
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 44px;
-            height: 24px;
-        }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #1e293b;
-            transition: .4s;
-            border-radius: 34px;
-            border: 1px solid #334155;
-        }
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 18px; width: 18px;
-            left: 2px; bottom: 2px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-        input:checked + .slider { background-color: #eab308; border-color: #eab308; }
-        input:checked + .slider:before { transform: translateX(20px); }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-50 h-screen w-full select-none">
+<body class="h-screen w-screen flex flex-col items-center justify-center relative bg-slate-950">
 
-    <div id="notif-bar" class="notification px-6 py-3 bg-white text-slate-950 font-black rounded-full shadow-2xl flex items-center gap-3">
-        <span id="notif-icon">🔔</span>
-        <span id="notif-text">THÔNG BÁO</span>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="fixed inset-0 z-[100] bg-slate-900 flex flex-col items-center justify-center p-6 text-center">
+        <div class="w-24 h-24 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <h1 class="text-2xl font-extrabold text-white mb-2">DEV STUDIO GAME</h1>
+        <p class="text-slate-400">Đang đồng bộ hóa dữ liệu đám mây...</p>
+        <div class="w-full max-w-xs bg-slate-800 h-2 mt-4 rounded-full overflow-hidden">
+            <div id="loading-bar" class="bg-blue-500 h-full transition-all duration-300" style="width: 0%"></div>
+        </div>
     </div>
 
-    <div id="sync-indicator" class="flex items-center gap-2">
-        <div id="sync-dot" class="w-2 h-2 rounded-full bg-red-500"></div>
-        <span id="sync-text">MẤT KẾT NỐI</span>
-    </div>
-
-    <div id="app" class="relative w-full h-full flex flex-col items-center overflow-hidden">
+    <!-- Main Menu -->
+    <div id="main-menu" class="hidden flex flex-col items-center gap-6 p-4">
+        <div class="text-center">
+            <h1 class="text-5xl font-extrabold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">LEGACY</h1>
+            <p class="text-slate-500 font-bold tracking-widest text-xs uppercase mt-1">Admin Edition v2.0</p>
+        </div>
         
-        <div id="loading-screen" class="fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-center transition-opacity duration-1000">
-            <div class="relative">
-                <h1 class="text-5xl font-black mb-8 tracking-tighter text-yellow-500 animate-pulse italic">COBAC PHELIEU</h1>
-                <div class="absolute -top-4 -right-4 text-xs bg-red-600 px-2 py-1 rounded rotate-12 font-bold">DEVSTUDIO</div>
-            </div>
-            <div class="w-72 h-1.5 bg-slate-800 rounded-full overflow-hidden mb-4">
-                <div id="loading-bar" class="h-full bg-gradient-to-r from-yellow-600 to-yellow-400 w-0 transition-all duration-150"></div>
-            </div>
-            <p id="loading-text" class="text-slate-500 text-xs font-medium uppercase tracking-[0.2em]">Đang đồng bộ với DEV STUDIO...</p>
+        <div class="flex flex-col gap-3 w-64">
+            <button onclick="switchScreen('game-screen')" class="bg-blue-600 hover:bg-blue-500 py-4 px-6 rounded-2xl font-bold flex items-center justify-between group">
+                <span>VÀO TRÒ CHƠI</span>
+                <span class="opacity-50 group-hover:opacity-100 transition-opacity">→</span>
+            </button>
+            <button onclick="switchScreen('collection-screen')" class="bg-slate-800 hover:bg-slate-700 py-4 px-6 rounded-2xl font-bold flex items-center justify-between group">
+                <span>BỘ SƯU TẬP</span>
+                <span class="opacity-50 group-hover:opacity-100 transition-opacity">📚</span>
+            </button>
+            <button onclick="switchScreen('shop-screen')" class="bg-emerald-700 hover:bg-emerald-600 py-4 px-6 rounded-2xl font-bold flex items-center justify-between group">
+                <span>CỬA HÀNG ĐỔI ĐỒ</span>
+                <span class="opacity-50 group-hover:opacity-100 transition-opacity">💎</span>
+            </button>
         </div>
-
-        <div class="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-20">
-            <div class="absolute -top-24 -left-24 w-96 h-96 bg-yellow-500 rounded-full blur-[120px]"></div>
-            <div class="absolute -bottom-24 -right-24 w-96 h-96 bg-red-600 rounded-full blur-[120px]"></div>
+        
+        <div class="mt-8 text-center bg-slate-900/50 p-4 rounded-3xl border border-white/5">
+            <p id="stats-summary" class="text-slate-400 text-sm font-medium">Lượt quay: 0 | Kim cương: 0</p>
         </div>
-
-        <!-- MAIN MENU -->
-        <div id="main-menu" class="hidden relative z-10 flex flex-col items-center w-full max-w-md h-full pt-10 pb-6 px-6">
-            <div class="flex-shrink-0 mb-6 text-center">
-                <h1 class="text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 via-yellow-500 to-orange-600 animate-float drop-shadow-2xl italic">
-                    COBAC PHELIEU
-                </h1>
-                <div class="mt-2 text-slate-400 text-[10px] font-bold tracking-[0.3em] uppercase">Giả lập Sưu tầm Đám mây</div>
-            </div>
-
-            <div id="main-scroll-area" class="w-full flex-grow overflow-y-auto pr-1 flex flex-col items-center">
-                
-                <div class="w-full bg-slate-900/80 border-2 border-yellow-500/30 p-4 rounded-3xl mb-4 flex items-center justify-between shadow-lg flex-shrink-0">
-                    <div>
-                        <p class="text-[10px] font-black text-yellow-500 uppercase tracking-widest">Số dư</p>
-                        <p id="stats-balance" class="text-2xl font-black text-white">0$</p>
-                    </div>
-                    <div class="text-3xl">💵</div>
-                </div>
-
-                <div class="flex flex-col gap-3 w-full flex-shrink-0">
-                    <div class="flex flex-col gap-2">
-                        <div id="auto-roll-control" class="hidden flex items-center justify-between px-4 py-2 bg-slate-900/50 border border-slate-800 rounded-xl mb-1">
-                            <span class="text-[10px] font-black tracking-widest text-slate-400 uppercase">TỰ ĐỘNG QUAY</span>
-                            <label class="switch">
-                                <input type="checkbox" id="auto-roll-toggle" onchange="handleAutoToggle(this.checked)">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-
-                        <button id="btn-roll" disabled onclick="rollCard()" class="relative press-effect w-full bg-gradient-to-r from-yellow-500 to-orange-500 disabled:opacity-50 hover:from-yellow-400 hover:to-orange-400 text-slate-950 font-black py-5 rounded-2xl transition-all shadow-[0_0_20px_rgba(234,179,8,0.3)] flex items-center justify-center gap-3 text-lg">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/><path d="M22 2v6h-6"/><path d="m22 8-4-4"/></svg>
-                            <span id="btn-roll-text">QUAY NGAY</span>
-                            <div id="auto-indicator" class="hidden absolute top-2 right-2 bg-slate-950 text-white text-[8px] px-2 py-1 rounded-full animate-pulse">AUTO BẬT</div>
-                        </button>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-3">
-                        <button onclick="toggleInventory(true)" class="press-effect bg-slate-800/50 border border-slate-700 hover:bg-slate-800 text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm uppercase">
-                            Kho đồ
-                        </button>
-                        <button onclick="toggleCollection(true)" class="press-effect bg-slate-800/50 border border-slate-700 hover:bg-slate-800 text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm uppercase">
-                            Bộ sưu tập
-                        </button>
-                        <button onclick="toggleShop(true)" class="col-span-2 press-effect bg-slate-100 text-slate-950 font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm uppercase">
-                            🛒 Cửa hàng Kỹ năng
-                        </button>
-                    </div>
-
-                    <div class="mt-4 flex gap-2 w-full p-2 bg-slate-900/80 border border-slate-800 rounded-2xl">
-                        <input type="text" id="input-redeem" placeholder="NHẬP MÃ QUÀ TẶNG..." class="flex-grow bg-transparent border-none outline-none px-4 text-xs font-black uppercase tracking-widest text-yellow-500 placeholder:text-slate-600">
-                        <button onclick="handleRedeem()" class="px-6 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-[10px] font-black transition-all press-effect">DÙNG</button>
-                    </div>
-                    
-                    <div class="mt-6 flex justify-center gap-6 text-center pb-10">
-                        <div>
-                            <p class="text-slate-500 text-[10px] uppercase font-bold mb-1">Tổng vật phẩm</p>
-                            <p id="stats-count" class="text-xl font-black">0</p>
-                        </div>
-                        <div class="w-px h-10 bg-slate-800"></div>
-                        <div>
-                            <p class="text-slate-500 text-[10px] uppercase font-bold mb-1">Giá trị kho</p>
-                            <p id="stats-value" class="text-xl font-black text-blue-400">0$</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <p id="user-id-display" class="mt-4 text-slate-600 text-[8px] font-bold tracking-widest opacity-40 uppercase flex-shrink-0">UID: ĐANG TẢI...</p>
-        </div>
-
-        <!-- SHOP MODAL -->
-        <div id="shop-modal" class="hidden fixed inset-0 z-50 modal-bg p-4 sm:p-8">
-            <div class="max-w-md mx-auto h-full flex flex-col">
-                <div class="flex justify-between items-end mb-6">
-                    <div>
-                        <h2 class="text-4xl font-black text-white italic leading-none">CỬA HÀNG</h2>
-                        <p class="text-slate-400 text-xs font-bold uppercase mt-1">NÂNG CẤP KỸ NĂNG CỦA BẠN</p>
-                    </div>
-                    <button onclick="toggleShop(false)" class="p-3 bg-slate-800 hover:bg-slate-700 rounded-2xl transition-colors press-effect">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                    </button>
-                </div>
-
-                <div id="shop-items-container" class="flex flex-col gap-4 overflow-y-auto pr-2 pb-32">
-                    <div class="bg-slate-900/80 border border-slate-800 p-6 rounded-3xl" data-price="1000000">
-                        <div class="flex items-start justify-between mb-4">
-                            <div>
-                                <h3 class="text-xl font-black text-yellow-500 uppercase">TỰ ĐỘNG QUAY</h3>
-                                <p class="text-xs text-slate-400 mt-1">Tự động quay khi sẵn sàng. Treo máy 100%.</p>
-                            </div>
-                            <span class="text-2xl">⚡</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-green-400 font-black">1,000,000$</span>
-                            <button id="buy-autoRoll" onclick="buySkill('autoRoll', 1000000)" class="px-6 py-2 bg-white text-slate-950 font-black rounded-xl text-xs press-effect hover:bg-yellow-400 transition-all uppercase">Mua ngay</button>
-                        </div>
-                    </div>
-
-                    <div class="bg-slate-900/80 border border-slate-800 p-6 rounded-3xl" data-price="5000000">
-                        <div class="flex items-start justify-between mb-4">
-                            <div>
-                                <h3 class="text-xl font-black text-red-500 uppercase">BÙA MAY MẮN</h3>
-                                <p class="text-xs text-slate-400 mt-1">Tăng tỷ lệ rơi các vật phẩm hiếm.</p>
-                            </div>
-                            <span class="text-2xl">🍀</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-green-400 font-black">5,000,000$</span>
-                            <button id="buy-lucky" onclick="buySkill('lucky', 5000000)" class="px-6 py-2 bg-white text-slate-950 font-black rounded-xl text-xs press-effect hover:bg-red-400 transition-all uppercase">Mua ngay</button>
-                        </div>
-                    </div>
-
-                    <div class="bg-slate-900/80 border border-slate-800 p-6 rounded-3xl" data-price="7500000">
-                        <div class="flex items-start justify-between mb-4">
-                            <div>
-                                <h3 class="text-xl font-black text-orange-500 uppercase">TỐC ĐỘ X2</h3>
-                                <p class="text-xs text-slate-400 mt-1">Gấp đôi tốc độ của Tự động quay.</p>
-                            </div>
-                            <span class="text-2xl">⏩</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-green-400 font-black">7,500,000$</span>
-                            <button id="buy-speedX2" onclick="buySkill('speedX2', 7500000)" class="px-6 py-2 bg-white text-slate-950 font-black rounded-xl text-xs press-effect hover:bg-orange-400 transition-all uppercase">Mua ngay</button>
-                        </div>
-                    </div>
-
-                    <div class="bg-slate-900/40 border border-dashed border-slate-700 p-6 rounded-3xl opacity-50 grayscale" data-price="999999999">
-                        <div class="flex items-start justify-between mb-2">
-                            <div>
-                                <h3 class="text-xl font-black text-slate-500 uppercase">COMING SOON</h3>
-                                <p class="text-[10px] text-slate-600 mt-1 font-bold">ĐẶC QUYỀN MỚI SẮP RA MẮT</p>
-                            </div>
-                        </div>
-                        <div class="text-center py-2 bg-slate-800 rounded-xl">
-                            <span class="text-slate-500 font-black italic tracking-widest">SẮP RA MẮT</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ROLL RESULT OVERLAY -->
-        <div id="congrats-overlay" class="hidden fixed inset-0 z-50 modal-bg flex items-center justify-center p-6">
-            <div id="congrats-card" class="bg-slate-900 p-8 rounded-[2.5rem] max-w-sm w-full text-center border-4 transform transition-all scale-50 opacity-0 duration-500 shadow-2xl relative overflow-hidden">
-                <div id="card-inner-glow" class="absolute inset-0 opacity-20"></div>
-                <div class="relative z-10">
-                    <p id="congrats-rarity" class="rarity-tag inline-block mb-4">RARITY</p>
-                    <div id="congrats-icon" class="text-8xl mb-6 drop-shadow-lg">🗡️</div>
-                    <h3 id="congrats-name" class="text-3xl font-black mb-2 leading-tight">Vật phẩm</h3>
-                    <p id="congrats-price" class="text-green-400 font-bold mb-8">0$</p>
-                    <p id="congrats-status" class="hidden text-white/50 text-[10px] font-bold mb-4 uppercase tracking-widest">+1 VÀO NGĂN XẾP TRÙNG</p>
-                    <button onclick="closeCongrats()" class="press-effect w-full bg-white text-slate-950 font-black py-4 rounded-2xl hover:bg-slate-200 transition-colors shadow-xl uppercase">Tiếp tục</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- INVENTORY MODAL -->
-        <div id="inventory-modal" class="hidden fixed inset-0 z-40 modal-bg p-4 sm:p-8">
-            <div class="max-w-4xl mx-auto h-full flex flex-col">
-                <div class="flex justify-between items-end mb-6">
-                    <div>
-                        <h2 class="text-4xl font-black text-white italic leading-none uppercase">Kho đồ</h2>
-                        <p id="inventory-count-text" class="text-slate-400 text-xs font-bold uppercase mt-1">0 VẬT PHẨM</p>
-                    </div>
-                    <button onclick="toggleInventory(false)" class="p-3 bg-slate-800 hover:bg-slate-700 rounded-2xl transition-colors press-effect">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                    </button>
-                </div>
-                
-                <div id="inventory-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-4 flex-grow content-start overflow-y-auto pr-2"></div>
-
-                <div id="pagination-controls" class="mt-8 flex items-center justify-between bg-slate-900/50 p-4 rounded-3xl border border-slate-800">
-                    <button onclick="changePage(-1)" id="prev-page" class="p-3 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none rounded-xl transition-all press-effect">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-                    </button>
-                    <div class="text-center">
-                        <span id="current-page-text" class="text-white font-black text-lg uppercase">Trang 1</span>
-                        <p id="total-pages-text" class="text-slate-500 text-[10px] font-bold uppercase tracking-widest">TRÊN 5 TRANG</p>
-                    </div>
-                    <button onclick="changePage(1)" id="next-page" class="p-3 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none rounded-xl transition-all press-effect">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- COLLECTION MODAL -->
-        <div id="collection-modal" class="hidden fixed inset-0 z-40 modal-bg p-4 sm:p-8">
-            <div class="max-w-4xl mx-auto h-full flex flex-col">
-                <div class="flex justify-between items-end mb-6">
-                    <div>
-                        <h2 class="text-4xl font-black text-white italic leading-none uppercase">Bộ sưu tập</h2>
-                        <p id="collection-progress-text" class="text-slate-400 text-xs font-bold uppercase mt-1">TIẾN ĐỘ: 0/30</p>
-                    </div>
-                    <button onclick="toggleCollection(false)" class="p-3 bg-slate-800 hover:bg-slate-700 rounded-2xl transition-colors press-effect">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                    </button>
-                </div>
-                <div id="collection-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 flex-grow content-start overflow-y-auto pr-2 pb-10"></div>
-            </div>
-        </div>
-
-        <!-- ACTION MODAL -->
-        <div id="action-modal" class="hidden fixed inset-0 z-[60] modal-bg flex items-center justify-center p-6">
-            <div class="bg-slate-900 border border-slate-800 p-8 rounded-[2rem] max-w-xs w-full shadow-2xl text-center">
-                <div id="action-icon" class="text-5xl mb-4">💎</div>
-                <h2 id="action-title" class="text-xl font-black mb-2">Chi tiết</h2>
-                <p id="action-desc" class="text-slate-400 text-sm mb-6 leading-relaxed"></p>
-                <div id="code-box" class="hidden mb-6 p-4 bg-slate-950 border border-slate-800 rounded-xl">
-                    <p class="text-[10px] text-yellow-500 font-black uppercase mb-1">Mã xác thực vật phẩm</p>
-                    <p id="display-code" class="text-xl font-mono font-black text-white tracking-widest select-all">#XXXXX</p>
-                </div>
-                <div class="flex flex-col gap-2">
-                    <button id="btn-sell-one" onclick="sellItem(1)" class="hidden bg-slate-700 hover:bg-slate-600 text-white font-black py-3 rounded-xl transition-all press-effect mb-1 uppercase">Bán 1</button>
-                    <button id="btn-sell-item" onclick="sellItem('all')" class="bg-red-600 hover:bg-red-500 text-white font-black py-3 rounded-xl transition-all press-effect mb-2 uppercase">Bán tất cả</button>
-                    <button id="btn-gen-code" onclick="showItemCode()" class="bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold py-3 rounded-xl transition-all press-effect uppercase">Mã giao dịch</button>
-                    <button onclick="closeActionModal()" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition-all press-effect uppercase">Đóng</button>
-                </div>
-            </div>
-        </div>
-
     </div>
 
+    <!-- Game Screen -->
+    <div id="game-screen" class="hidden absolute inset-0 flex flex-col overflow-hidden">
+        <div class="p-6 flex justify-between items-center bg-slate-950/80 backdrop-blur-lg border-b border-white/5">
+            <button onclick="switchScreen('main-menu')" class="p-3 bg-slate-800 rounded-2xl text-xl">🏠</button>
+            <div class="flex items-center gap-4">
+                <div class="flex flex-col items-end">
+                    <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Tài chính</span>
+                    <div class="flex gap-3">
+                        <span id="gem-count" class="font-black text-emerald-400">0 💎</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-1 flex flex-col items-center justify-center p-6 relative">
+            <div id="result-display" class="w-full max-w-sm aspect-square rounded-[3rem] bg-slate-900 border-4 border-white/5 flex flex-col items-center justify-center relative overflow-hidden shadow-2xl">
+                <div class="absolute inset-0 bg-gradient-to-b from-transparent to-black/20 pointer-events-none"></div>
+                <div id="result-icon" class="text-8xl mb-4 grayscale opacity-20">❔</div>
+                <div id="result-name" class="text-2xl font-black text-slate-700">CHƯA QUAY</div>
+                <div id="result-rarity" class="text-xs font-bold tracking-[0.2em] uppercase text-slate-600 mt-2">Ready to Roll</div>
+            </div>
+
+            <div class="mt-12 w-full max-w-sm flex flex-col gap-4">
+                <button id="btn-roll" onclick="rollElement()" class="w-full bg-blue-600 active:scale-95 py-6 rounded-3xl font-black text-xl shadow-lg shadow-blue-900/20 transition-all">
+                    QUAY NGAY
+                </button>
+                <div class="flex justify-between px-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                    <span>Tổng lượt: <span id="roll-count">0</span></span>
+                    <span id="current-luck" class="text-blue-400">🍀 Luck: 1x</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Collection Screen -->
+    <div id="collection-screen" class="hidden absolute inset-0 flex flex-col bg-slate-950">
+        <div class="p-6 flex items-center justify-between border-b border-white/5">
+            <h2 class="text-2xl font-black">BỘ SƯU TẬP</h2>
+            <button onclick="switchScreen('main-menu')" class="bg-slate-800 p-2 px-4 rounded-xl font-bold">ĐÓNG</button>
+        </div>
+        <div id="collection-grid" class="flex-1 overflow-y-auto p-4 grid grid-cols-3 gap-3 hide-scrollbar">
+            <!-- Items generated by JS -->
+        </div>
+    </div>
+
+    <!-- Shop Screen -->
+    <div id="shop-screen" class="hidden absolute inset-0 flex flex-col bg-slate-900">
+        <div class="p-6 bg-slate-950 flex flex-col gap-4 border-b border-white/5">
+            <div class="flex justify-between items-center">
+                <h2 class="text-2xl font-black text-emerald-400">CHỢ ĐEN</h2>
+                <button onclick="switchScreen('main-menu')" class="text-slate-500 font-bold">RỜI ĐI</button>
+            </div>
+            <div class="flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
+                <div class="bg-slate-800 p-2 px-4 rounded-full text-xs font-bold whitespace-nowrap">🪙 Tiền: <span id="shop-gems" class="text-emerald-400">0</span></div>
+                <div id="shop-timer" class="bg-slate-800 p-2 px-4 rounded-full text-xs font-bold whitespace-nowrap text-orange-400">Mới: --:--</div>
+            </div>
+        </div>
+        <div id="shop-grid" class="flex-1 overflow-y-auto p-6 grid grid-cols-1 gap-4">
+            <!-- Dealer items -->
+        </div>
+    </div>
+
+    <!-- Notification System -->
+    <div id="notif-container" class="fixed top-6 left-0 right-0 flex flex-col items-center gap-2 pointer-events-none z-[1000]"></div>
+
+    <!-- Firebase Scripts -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // AN TOÀN KHI TRIỂN KHAI GITHUB: Kiểm tra biến môi trường có sẵn không
-        const getFirebaseConfig = () => {
-            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-                return JSON.parse(__firebase_config);
-            }
-            // Nếu bạn muốn chạy trên GitHub thật, bạn có thể thay giá trị null bằng 1 object config thật của Firebase
-            console.warn("Cảnh báo: Không tìm thấy cấu hình Firebase mặc định của hệ thống.");
-            return null; 
-        };
-
-        const config = getFirebaseConfig();
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-cobac';
-        
-        let db, auth;
-        
-        // Chỉ khởi tạo nếu có config
-        if (config) {
-            const app = initializeApp(config);
-            auth = getAuth(app);
-            db = getFirestore(app);
-        }
-
-        const RARITIES = {
-            GODLY:     { label: 'GODLY', color: '#eab308', priority: 7 },
-            MYTHIC:    { label: 'MYTHIC', color: '#ef4444', priority: 6 },
-            LEGENDARY: { label: 'LEGENDARY', color: '#f59e0b', priority: 5 },
-            MYSTIC:    { label: 'MYSTIC', color: '#a855f7', priority: 4 },
-            RARE:      { label: 'RARE', color: '#3b82f6', priority: 3 },
-            NATURAL:   { label: 'NATURAL', color: '#22c55e', priority: 2 },
-            BASIC:     { label: 'BASIC', color: '#94a3b8', priority: 1 }
-        };
-
-        const ELEMENT_POOL = [
-            { name: "Sáng Thế", rarity: "GODLY", weight: 0.01, price: 10000000, icon: "👁️" },
-            { name: "Vĩnh Hằng", rarity: "GODLY", weight: 0.01, price: 5000000, icon: "♾️" },
-            { name: "Hỗn Mang", rarity: "GODLY", weight: 0.01, price: 2500000, icon: "💥" },
-            { name: "Sự Sống", rarity: "MYTHIC", weight: 0.3, price: 1200000, icon: "🧬" },
-            { name: "Không Gian", rarity: "MYTHIC", weight: 0.3, price: 950000, icon: "🌀" },
-            { name: "Thời Gian", rarity: "MYTHIC", weight: 0.3, price: 800000, icon: "⏳" },
-            { name: "Vũ Trụ", rarity: "LEGENDARY", weight: 0.4, price: 450000, icon: "☄️" },
-            { name: "Âm Dương", rarity: "LEGENDARY", weight: 0.4, price: 300000, icon: "☯️" },
-            { name: "Huyết Nguyệt", rarity: "LEGENDARY", weight: 0.4, price: 220000, icon: "🩸" },
-            { name: "Hư Không", rarity: "LEGENDARY", weight: 0.4, price: 150000, icon: "🌌" },
-            { name: "Pha Lê", rarity: "MYSTIC", weight: 3.0, price: 85000, icon: "🔮" },
-            { name: "Ánh Sáng", rarity: "MYSTIC", weight: 3.5, price: 70000, icon: "✨" },
-            { name: "Bóng Tối", rarity: "MYSTIC", weight: 4.0, price: 65000, icon: "🌑" },
-            { name: "Kim Cương", rarity: "MYSTIC", weight: 4.5, price: 50000, icon: "💎" },
-            { name: "Khói", rarity: "MYSTIC", weight: 5.0, price: 35000, icon: "🌫️" },
-            { name: "Sấm Sét", rarity: "RARE", weight: 6.0, price: 15000, icon: "⚡" },
-            { name: "Băng Giá", rarity: "RARE", weight: 6.5, price: 12500, icon: "❄️" },
-            { name: "Vàng", rarity: "RARE", weight: 7.0, price: 10000, icon: "🪙" },
-            { name: "Dung Nham", rarity: "RARE", weight: 7.5, price: 8500, icon: "🌋" },
-            { name: "Bạc", rarity: "RARE", weight: 8.0, price: 6000, icon: "🥈" },
-            { name: "Lửa", rarity: "NATURAL", weight: 10.0, price: 2500, icon: "🔥" },
-            { name: "Nước", rarity: "NATURAL", weight: 10.5, price: 2200, icon: "💧" },
-            { name: "Gió", rarity: "NATURAL", weight: 11.0, price: 1800, icon: "🌪️" },
-            { name: "Thiên Nhiên", rarity: "NATURAL", weight: 11.5, price: 1500, icon: "🌿" },
-            { name: "Sắt", rarity: "NATURAL", weight: 12.0, price: 1200, icon: "⛓️" },
-            { name: "Đất", rarity: "BASIC", weight: 15.0, price: 500, icon: "🪨" },
-            { name: "Sỏi", rarity: "BASIC", weight: 16.0, price: 350, icon: "🏜️" },
-            { name: "Than", rarity: "BASIC", weight: 17.0, price: 200, icon: "⬛" },
-            { name: "Cát", rarity: "BASIC", weight: 18.0, price: 100, icon: "🏖️" },
-            { name: "Đồng", rarity: "BASIC", weight: 20.0, price: 50, icon: "🥉" }
+        // Constants
+        const ELEMENTS = [
+            { id: 'fire', name: 'LỬA', rarity: 'Common', chance: 40, icon: '🔥', color: '#f87171' },
+            { id: 'water', name: 'NƯỚC', rarity: 'Common', chance: 30, icon: '💧', color: '#60a5fa' },
+            { id: 'earth', name: 'ĐẤT', rarity: 'Common', chance: 20, icon: '🌿', color: '#4ade80' },
+            { id: 'wind', name: 'GIÓ', rarity: 'Rare', chance: 8, icon: '💨', color: '#94a3b8' },
+            { id: 'lightning', name: 'SÉT', rarity: 'Rare', chance: 1.5, icon: '⚡', color: '#facc15' },
+            { id: 'lava', name: 'DUNG NHAM', rarity: 'Epic', chance: 0.4, icon: '🌋', color: '#fb923c' },
+            { id: 'void', name: 'HƯ KHÔNG', rarity: 'Legendary', chance: 0.08, icon: '🌀', color: '#a855f7' },
+            { id: 'mythic-eye', name: 'MẮT THẦN', rarity: 'Mythic', chance: 0.01, icon: '👁️', color: '#ef4444' },
+            { id: 'divine', name: 'THÁNH VẬT', rarity: 'Godly', chance: 0.001, icon: '👑', color: '#eab308' },
+            { id: 'summer-sun', name: 'NẮNG HÈ', rarity: 'Summer', chance: 0.05, icon: '☀️', color: '#10b981' }
         ];
 
-        let inventory = [];
-        let balance = 0; 
-        let currentUser = null;
-        let currentPage = 1;
-        const itemsPerPage = 6;
-        let currentSelectedItem = null;
-        let skills = { autoRoll: false, lucky: false, speedX2: false, extraInventory: false };
-        let usedCodes = [];
-        let lastExtraBuyTime = 0;
-        let isAutoOn = false; 
-        let isRolling = false;
-        let autoRollInterval = null;
-
-        const showNotif = (text, icon = "🔔") => {
-            const bar = document.getElementById('notif-bar');
-            document.getElementById('notif-text').innerText = text;
-            document.getElementById('notif-icon').innerText = icon;
-            bar.classList.add('show');
-            setTimeout(() => bar.classList.remove('show'), 2000);
+        // Game State
+        let userData = {
+            uid: '',
+            rolls: 0,
+            gems: 0,
+            collection: [],
+            wins: 0
         };
 
-        const updateSyncUI = (status) => {
-            const dot = document.getElementById('sync-dot');
-            const text = document.getElementById('sync-text');
-            if(status === 'connected') {
-                dot.className = "w-2 h-2 rounded-full bg-green-500 shadow-[0_0_5px_#22c55e]";
-                text.innerText = "ĐÃ ĐỒNG BỘ CLOUD";
-            } else if (status === 'syncing') {
-                dot.className = "w-2 h-2 rounded-full bg-yellow-500 animate-pulse";
-                text.innerText = "ĐANG LƯU...";
-            } else {
-                dot.className = "w-2 h-2 rounded-full bg-red-500";
-                text.innerText = "NGOẠI TUYẾN";
+        let dealerShopData = {
+            items: [],
+            nextRestock: 0
+        };
+
+        // Firebase Config
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'legacy-game';
+        const isUsingFirebase = true;
+
+        // UI Helpers
+        window.switchScreen = (screenId) => {
+            const screens = ['main-menu', 'game-screen', 'collection-screen', 'shop-screen'];
+            screens.forEach(s => document.getElementById(s).classList.add('hidden'));
+            document.getElementById(screenId).classList.remove('hidden');
+            if (screenId === 'collection-screen') updateCollectionUI();
+            if (screenId === 'shop-screen') updateShopUI();
+        };
+
+        function showNotif(msg, icon = 'ℹ️') {
+            const container = document.getElementById('notif-container');
+            const div = document.createElement('div');
+            div.className = "bg-slate-900/90 backdrop-blur border border-white/10 p-3 px-5 rounded-2xl shadow-xl flex items-center gap-3 animate-bounce";
+            div.innerHTML = `<span class="text-xl">${icon}</span><span class="font-bold text-sm">${msg}</span>`;
+            container.appendChild(div);
+            setTimeout(() => div.remove(), 3000);
+        }
+
+        // Logic - Game Functions
+        window.rollElement = async () => {
+            if (userData.gems < 10 && userData.rolls > 0) {
+                // First free rolls or check gems if we implement gem cost
             }
-        };
 
-        const saveToCloud = async () => {
-            if(!db || !currentUser) {
-                // Fallback LocalStorage nếu không có Firebase
-                localStorage.setItem('cobac_phelieu_data', JSON.stringify({
-                    inventory, skills, balance, usedCodes, lastExtraBuyTime
-                }));
-                return;
-            }
-            updateSyncUI('syncing');
-            try {
-                const userDocRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'gameData');
-                await setDoc(userDocRef, { 
-                    inventory, 
-                    skills, 
-                    balance, 
-                    usedCodes, 
-                    lastExtraBuyTime,
-                    lastUpdate: new Date().toISOString()
-                }, { merge: true });
-                updateSyncUI('connected');
-            } catch (e) {
-                updateSyncUI('error');
-            }
-        };
+            const btn = document.getElementById('btn-roll');
+            btn.disabled = true;
+            btn.innerText = "ĐANG TÌM KIẾM...";
 
-        const updateShopUI = () => {
-            const container = document.getElementById('shop-items-container');
-            ['autoRoll', 'lucky', 'speedX2'].forEach(key => {
-                const btn = document.getElementById(`buy-${key}`);
-                if (btn && skills[key]) {
-                    btn.innerText = "ĐÃ SỞ HỮU";
-                    btn.disabled = true;
-                    btn.className = "px-6 py-2 bg-slate-800 text-slate-500 font-black rounded-xl text-xs uppercase";
-                }
-            });
-        };
+            // Simple roll logic
+            let rand = Math.random() * 100;
+            let cumm = 0;
+            let result = ELEMENTS[0];
 
-        const updateStats = () => {
-            const totalItems = inventory.reduce((sum, item) => sum + (item.count || 1), 0);
-            const totalValue = inventory.reduce((sum, item) => sum + (item.price * (item.count || 1)), 0);
-            
-            document.getElementById('stats-count').innerText = totalItems.toLocaleString();
-            document.getElementById('stats-value').innerText = totalValue.toLocaleString() + '$';
-            document.getElementById('stats-balance').innerText = balance.toLocaleString() + '$';
-            document.getElementById('inventory-count-text').innerText = `${totalItems} VẬT PHẨM (${inventory.length} LOẠI)`;
-            
-            if (skills.autoRoll) document.getElementById('auto-roll-control').classList.remove('hidden');
-            
-            updateShopUI();
-        };
-
-        const rollCard = () => {
-            if(isRolling) return;
-            isRolling = true;
-            
-            const luckyFactor = skills.lucky ? 0.75 : 1.0; 
-            const modifiedPool = ELEMENT_POOL.map(el => {
-                const isRare = ['GODLY', 'MYTHIC', 'LEGENDARY', 'MYSTIC'].includes(el.rarity);
-                return { ...el, currentWeight: isRare ? el.weight : el.weight * luckyFactor };
-            });
-
-            const totalWeight = modifiedPool.reduce((acc, el) => acc + el.currentWeight, 0);
-            let randomNum = Math.random() * totalWeight;
-            let selected = modifiedPool[modifiedPool.length - 1];
-
-            for (const el of modifiedPool) {
-                if (randomNum < el.currentWeight) {
-                    selected = el;
+            for (let el of ELEMENTS) {
+                cumm += el.chance;
+                if (rand <= cumm) {
+                    result = el;
                     break;
                 }
-                randomNum -= el.currentWeight;
             }
 
-            const existingIndex = inventory.findIndex(item => item.name === selected.name);
-            let rolledItem;
-            let isDuplicate = false;
+            // Update UI
+            const resDisplay = document.getElementById('result-display');
+            const resIcon = document.getElementById('result-icon');
+            const resName = document.getElementById('result-name');
+            const resRarity = document.getElementById('result-rarity');
 
-            if (existingIndex !== -1) {
-                inventory[existingIndex].count = (inventory[existingIndex].count || 1) + 1;
-                rolledItem = inventory[existingIndex];
-                isDuplicate = true;
-            } else {
-                rolledItem = {
-                    id: Date.now() + Math.random().toString(36).substr(2, 5),
-                    name: selected.name,
-                    icon: selected.icon,
-                    rarity: selected.rarity,
-                    price: selected.price,
-                    count: 1,
-                    timestamp: new Date().toISOString()
-                };
-                inventory.push(rolledItem);
+            resDisplay.className = "w-full max-w-sm aspect-square rounded-[3rem] bg-slate-900 border-4 border-white/5 flex flex-col items-center justify-center relative overflow-hidden shadow-2xl roll-anim";
+            
+            if (result.rarity === 'Godly') resDisplay.classList.add('rarity-glow-godly');
+            if (result.rarity === 'Summer') resDisplay.classList.add('summer-glow');
+
+            resIcon.innerText = result.icon;
+            resIcon.classList.remove('grayscale', 'opacity-20');
+            resName.innerText = result.name;
+            resName.style.color = result.color;
+            resRarity.innerText = result.rarity;
+            resRarity.style.color = result.color;
+
+            // Update state
+            userData.rolls++;
+            userData.gems += 5; // Reward per roll
+            if (!userData.collection.includes(result.id)) {
+                userData.collection.push(result.id);
+                showNotif(`MỚI: ${result.name}!`, '✨');
             }
 
             updateStats();
-            showCongrats(rolledItem, isDuplicate);
-            saveToCloud();
-            isRolling = false;
-        };
-
-        const startAutoRoll = () => {
-            if (autoRollInterval) clearInterval(autoRollInterval);
-            const delay = skills.speedX2 ? 350 : 700;
-            autoRollInterval = setInterval(() => {
-                if (!isAutoOn) {
-                    clearInterval(autoRollInterval);
-                    autoRollInterval = null;
-                    return;
-                }
-                const overlay = document.getElementById('congrats-overlay');
-                const isModalOpen = !document.getElementById('inventory-modal').classList.contains('hidden') || 
-                                  !document.getElementById('collection-modal').classList.contains('hidden') ||
-                                  !document.getElementById('shop-modal').classList.contains('hidden');
-                                  
-                if (overlay.classList.contains('hidden') && !isModalOpen && !isRolling) {
-                    rollCard();
-                }
-            }, delay); 
-        };
-
-        window.rollCard = rollCard;
-        
-        window.handleAutoToggle = (checked) => {
-            isAutoOn = checked;
-            const indicator = document.getElementById('auto-indicator');
-            if (isAutoOn) {
-                indicator.classList.remove('hidden');
-                startAutoRoll();
-                showNotif("ĐÃ BẬT TỰ ĐỘNG QUAY", "⚡");
-            } else {
-                indicator.classList.add('hidden');
-                if (autoRollInterval) clearInterval(autoRollInterval);
-                autoRollInterval = null;
-                showNotif("ĐÃ TẮT TỰ ĐỘNG QUAY", "🛑");
-            }
-        };
-
-        window.buySkill = (skillKey, price) => {
-            if (balance < price) {
-                showNotif("CẦN " + price.toLocaleString() + "$", "❌");
-                return;
-            }
+            saveData();
             
-            balance -= price;
-            skills[skillKey] = true;
-            showNotif("MUA THÀNH CÔNG!", "✅");
-            
-            updateStats();
-            saveToCloud();
-        };
-
-        window.sellItem = (mode) => {
-            if (!currentSelectedItem) return;
-            const index = inventory.findIndex(i => i.id === currentSelectedItem.id);
-            if (index !== -1) {
-                const item = inventory[index];
-                if (mode === 1) {
-                    balance += item.price;
-                    if (item.count > 1) item.count -= 1;
-                    else {
-                        inventory.splice(index, 1);
-                        window.closeActionModal();
-                    }
-                    showNotif(`ĐÃ BÁN 1: +${item.price.toLocaleString()}$`, "💰");
-                } else {
-                    const totalIncome = item.price * (item.count || 1);
-                    balance += totalIncome; 
-                    inventory.splice(index, 1); 
-                    showNotif(`ĐÃ BÁN TẤT CẢ: +${totalIncome.toLocaleString()}$`, "💰");
-                    window.closeActionModal();
-                }
-                updateStats();
-                renderInventory();
-                saveToCloud();
-                if (!document.getElementById('action-modal').classList.contains('hidden')) {
-                    document.getElementById('action-desc').innerText = `Bậc hiếm: ${RARITIES[item.rarity].label}. Bạn sở hữu x${item.count || 1}. Tổng giá trị: ${(item.price * (item.count || 1)).toLocaleString()}$`;
-                    if (item.count <= 1) document.getElementById('btn-sell-one').classList.add('hidden');
-                }
-            }
-        };
-
-        window.handleRedeem = () => {
-            const input = document.getElementById('input-redeem');
-            const code = input.value.trim().toUpperCase();
-            if (!code) return;
-            
-            if (usedCodes.includes(code)) {
-                showNotif("MÃ ĐÃ ĐƯỢC SỬ DỤNG!", "❌");
-                input.value = "";
-                return;
-            }
-
-            if (code === "MONEY") {
-                balance += 1000000;
-                usedCodes.push(code);
-                showNotif("ĐÃ NHẬN: +1,000,000$", "💸");
-            } else if (code === "DEVSTUDIO") {
-                balance += 5000000;
-                usedCodes.push(code);
-                showNotif("CHÀO MỪNG ĐẾN DEV STUDIO! +5,000,000$", "👑");
-            } else if (code === "COBACPHELIEU") {
-                balance += 1000000;
-                usedCodes.push(code);
-                showNotif("QUÀ TỪ COBAC PHELIEU: +1,000,000$", "💸");
-            } else if (code === "KHOAMANH") {
-                ELEMENT_POOL.forEach(el => {
-                    const existingIndex = inventory.findIndex(item => item.name === el.name);
-                    if (existingIndex !== -1) inventory[existingIndex].count = (inventory[existingIndex].count || 1) + 1;
-                    else {
-                        inventory.push({
-                            id: Date.now() + Math.random().toString(36).substr(2, 5),
-                            name: el.name, icon: el.icon, rarity: el.rarity, price: el.price, count: 1,
-                            timestamp: new Date().toISOString()
-                        });
-                    }
-                });
-                usedCodes.push(code);
-                showNotif("ĐÃ MỞ KHÓA TẤT CẢ NGUYÊN TỐ!", "🔓");
-            } else {
-                showNotif("MÃ KHÔNG HỢP LỆ!", "⚠️");
-            }
-            updateStats();
-            saveToCloud();
-            input.value = "";
-        };
-
-        window.toggleShop = (show) => document.getElementById('shop-modal').classList.toggle('hidden', !show);
-
-        window.toggleInventory = (show) => {
-            const modal = document.getElementById('inventory-modal');
-            if (show) {
-                currentPage = 1;
-                modal.classList.remove('hidden');
-                renderInventory();
-            } else modal.classList.add('hidden');
-        };
-
-        window.toggleCollection = (show) => {
-            const modal = document.getElementById('collection-modal');
-            if (show) {
-                modal.classList.remove('hidden');
-                renderCollection();
-            } else modal.classList.add('hidden');
-        };
-
-        window.changePage = (direction) => {
-            const maxPages = 5;
-            const newPage = currentPage + direction;
-            if (newPage >= 1 && newPage <= maxPages) {
-                currentPage = newPage;
-                renderInventory();
-            }
-        };
-
-        window.closeCongrats = () => {
-            const card = document.getElementById('congrats-card');
-            card.classList.add('scale-50', 'opacity-0');
-            setTimeout(() => { document.getElementById('congrats-overlay').classList.add('hidden'); }, 300);
-        };
-
-        window.closeActionModal = () => document.getElementById('action-modal').classList.add('hidden');
-        
-        window.showItemCode = () => {
-            if (!currentSelectedItem) return;
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-            let randomCode = '';
-            for(let i=0; i<5; i++) randomCode += chars.charAt(Math.floor(Math.random() * chars.length));
-            document.getElementById('display-code').innerText = `#${randomCode}`;
-            document.getElementById('code-box').classList.remove('hidden');
-            document.getElementById('btn-gen-code').innerText = "TẠO MÃ MỚI";
-        };
-
-        const showCongrats = (item, isDuplicate) => {
-            const overlay = document.getElementById('congrats-overlay');
-            const card = document.getElementById('congrats-card');
-            const statusText = document.getElementById('congrats-status');
-            const rarityData = RARITIES[item.rarity];
-            document.getElementById('congrats-icon').innerText = item.icon;
-            document.getElementById('congrats-name').innerText = item.name;
-            document.getElementById('congrats-price').innerText = item.price.toLocaleString() + '$';
-            if (isDuplicate) {
-                statusText.innerText = `X${item.count} - ĐÃ CÓ`;
-                statusText.classList.remove('hidden');
-            } else statusText.classList.add('hidden');
-            const rarityTag = document.getElementById('congrats-rarity');
-            rarityTag.innerText = rarityData.label;
-            rarityTag.style.backgroundColor = rarityData.color;
-            rarityTag.style.color = (['BASIC', 'GODLY'].includes(item.rarity)) ? '#000' : '#fff';
-            card.style.borderColor = rarityData.color;
-            document.getElementById('card-inner-glow').style.backgroundColor = rarityData.color;
-            card.classList.remove('rarity-glow-godly', 'rarity-glow-mythic');
-            if (item.rarity === 'GODLY') card.classList.add('rarity-glow-godly');
-            if (item.rarity === 'MYTHIC') card.classList.add('rarity-glow-mythic');
-            overlay.classList.remove('hidden');
             setTimeout(() => {
-                card.classList.remove('scale-50', 'opacity-0');
-                card.classList.add('scale-100', 'opacity-100');
-            }, 50);
-            if (isAutoOn) {
-                const autoDelay = skills.speedX2 ? 400 : 800;
-                setTimeout(() => { if(!overlay.classList.contains('hidden')) closeCongrats(); }, autoDelay);
-            }
+                btn.disabled = false;
+                btn.innerText = "QUAY TIẾP";
+            }, 800);
         };
 
-        const renderInventory = () => {
-            const grid = document.getElementById('inventory-grid');
-            grid.innerHTML = '';
-            const maxPages = 5;
-            document.getElementById('total-pages-text').innerText = `TRÊN ${maxPages} TRANG`;
-            document.getElementById('current-page-text').innerText = `TRANG ${currentPage}`;
-            document.getElementById('prev-page').disabled = currentPage === 1;
-            document.getElementById('next-page').disabled = currentPage === maxPages;
+        function updateStats() {
+            document.getElementById('gem-count').innerText = `${userData.gems} 💎`;
+            document.getElementById('shop-gems').innerText = userData.gems;
+            document.getElementById('roll-count').innerText = userData.rolls;
+            document.getElementById('stats-summary').innerText = `Lượt quay: ${userData.rolls} | Kim cương: ${userData.gems}`;
+        }
 
-            const sortedInv = [...inventory].sort((a, b) => RARITIES[b.rarity].priority - RARITIES[a.rarity].priority || b.price - a.price);
-            const startIndex = (currentPage - 1) * itemsPerPage;
-            const pageItems = sortedInv.slice(startIndex, startIndex + itemsPerPage);
-
-            if (pageItems.length === 0) {
-                grid.innerHTML = `<div class="col-span-full py-20 text-center text-slate-600 font-bold uppercase tracking-widest text-sm">Trang trống</div>`;
-                return;
-            }
-
-            pageItems.forEach(item => {
-                const rarityData = RARITIES[item.rarity];
-                const card = document.createElement('div');
-                card.className = `relative card-shimmer bg-slate-900 border-2 p-4 rounded-3xl flex flex-col items-center text-center press-effect transition-all h-full min-h-[160px]`;
-                card.style.borderColor = rarityData.color + '33';
-                card.onclick = () => {
-                    currentSelectedItem = item;
-                    document.getElementById('action-title').innerText = item.name;
-                    document.getElementById('action-icon').innerText = item.icon;
-                    document.getElementById('action-desc').innerText = `Bậc hiếm: ${RARITIES[item.rarity].label}. Bạn sở hữu x${item.count || 1}. Tổng giá trị: ${(item.price * (item.count || 1)).toLocaleString()}$`;
-                    document.getElementById('code-box').classList.add('hidden');
-                    if (item.count > 1) {
-                        document.getElementById('btn-sell-one').classList.remove('hidden');
-                        document.getElementById('btn-sell-item').innerText = "BÁN TẤT CẢ";
-                    } else {
-                        document.getElementById('btn-sell-one').classList.add('hidden');
-                        document.getElementById('btn-sell-item').innerText = "BÁN VẬT PHẨM";
-                    }
-                    document.getElementById('action-modal').classList.remove('hidden');
-                };
-                card.innerHTML = `
-                    ${(item.count > 1) ? `<div class="stack-badge text-white">x${item.count}</div>` : ''}
-                    <div class="text-4xl mb-3 mt-2">${item.icon}</div>
-                    <div class="rarity-tag mb-1" style="color: ${rarityData.color}">${rarityData.label}</div>
-                    <div class="text-xs font-black truncate w-full mb-1 uppercase">${item.name}</div>
-                    <div class="mt-auto text-[10px] text-green-500 font-bold">${item.price.toLocaleString()}$</div>
-                `;
-                grid.appendChild(card);
-            });
-        };
-
-        const renderCollection = () => {
+        // Updated Collection UI with Rarity Borders for unowned items
+        function updateCollectionUI() {
             const grid = document.getElementById('collection-grid');
             grid.innerHTML = '';
-            const ownedNames = new Set(inventory.map(item => item.name));
-            let ownedCount = 0;
-            const sortedPool = [...ELEMENT_POOL].sort((a, b) => RARITIES[b.rarity].priority - RARITIES[a.rarity].priority || b.price - a.price);
-            sortedPool.forEach(el => {
-                const isOwned = ownedNames.has(el.name);
-                if (isOwned) ownedCount++;
-                const rarityData = RARITIES[el.rarity];
+
+            ELEMENTS.forEach(el => {
+                const owned = userData.collection.includes(el.id);
+                const item = document.createElement('div');
+                
+                // Get border class based on rarity
+                let rarityBorderClass = '';
+                switch(el.rarity) {
+                    case 'Common': rarityBorderClass = 'border-common'; break;
+                    case 'Rare': rarityBorderClass = 'border-rare'; break;
+                    case 'Epic': rarityBorderClass = 'border-epic'; break;
+                    case 'Legendary': rarityBorderClass = 'border-legendary'; break;
+                    case 'Mythic': rarityBorderClass = 'border-mythic'; break;
+                    case 'Godly': rarityBorderClass = 'border-godly'; break;
+                    case 'Summer': rarityBorderClass = 'border-summer'; break;
+                }
+
+                item.className = `aspect-square bg-slate-900 rounded-2xl flex flex-col items-center justify-center border-2 ${owned ? 'border-white/20' : rarityBorderClass + ' opacity-60'} transition-all`;
+                
+                if (owned && el.rarity === 'Godly') item.classList.add('rarity-glow-godly');
+                if (owned && el.rarity === 'Summer') item.classList.add('summer-glow');
+
+                item.innerHTML = `
+                    <div class="text-3xl mb-1 ${owned ? '' : 'grayscale'}">${el.icon}</div>
+                    <div class="text-[8px] font-black uppercase text-center ${owned ? '' : 'text-slate-600'}">${el.name}</div>
+                    <div class="text-[6px] font-bold opacity-50">${el.rarity}</div>
+                `;
+                grid.appendChild(item);
+            });
+        }
+
+        // Shop Logic
+        function generateDealerItems() {
+            const pool = ELEMENTS.filter(e => e.rarity !== 'Common');
+            const shuffled = [...pool].sort(() => 0.5 - Math.random());
+            dealerShopData.items = shuffled.slice(0, 3).map(item => ({
+                id: item.id,
+                price: Math.floor(200 + Math.random() * 800)
+            }));
+            dealerShopData.nextRestock = Date.now() + (30 * 60 * 1000); // 30 mins
+            saveData();
+        }
+
+        function updateShopUI() {
+            const grid = document.getElementById('shop-grid');
+            grid.innerHTML = '';
+
+            dealerShopData.items.forEach(shopItem => {
+                const el = ELEMENTS.find(e => e.id === shopItem.id);
+                const owned = userData.collection.includes(el.id);
                 const card = document.createElement('div');
-                card.className = `relative bg-slate-900 border-2 p-3 rounded-2xl flex flex-col items-center text-center transition-all ${isOwned ? 'opacity-100' : 'locked-item shadow-inner'}`;
-                card.style.borderColor = isOwned ? rarityData.color + '66' : rarityData.color + '22';
+                card.className = "bg-slate-800 p-5 rounded-3xl flex items-center justify-between border border-white/5";
                 card.innerHTML = `
-                    <div class="text-3xl mb-2 ${!isOwned ? 'blur-[2px]' : ''}">${isOwned ? el.icon : '❓'}</div>
-                    <div class="text-[9px] font-black uppercase mb-1" style="color: ${rarityData.color}">${rarityData.label}</div>
-                    <div class="text-[10px] font-bold truncate w-full px-1 text-slate-400 uppercase">${isOwned ? el.name : '?? ?? ??'}</div>
+                    <div class="flex items-center gap-4">
+                        <div class="text-4xl">${el.icon}</div>
+                        <div>
+                            <div class="font-black">${el.name}</div>
+                            <div class="text-[10px] font-bold uppercase" style="color: ${el.color}">${el.rarity}</div>
+                        </div>
+                    </div>
+                    <button onclick="buyFromShop('${el.id}', ${shopItem.price})" 
+                        class="bg-emerald-600 px-6 py-3 rounded-2xl font-black text-sm ${owned || userData.gems < shopItem.price ? 'opacity-30' : 'active:scale-95'}"
+                        ${owned || userData.gems < shopItem.price ? 'disabled' : ''}>
+                        ${owned ? 'SỞ HỮU' : shopItem.price + ' 💎'}
+                    </button>
                 `;
                 grid.appendChild(card);
             });
-            document.getElementById('collection-progress-text').innerText = `TIẾN ĐỘ: ${ownedCount}/${ELEMENT_POOL.length}`;
+
+            updateShopTimer();
+        }
+
+        window.buyFromShop = (id, price) => {
+            if (userData.gems >= price && !userData.collection.includes(id)) {
+                userData.gems -= price;
+                userData.collection.push(id);
+                showNotif("MUA THÀNH CÔNG!", "🛍️");
+                updateStats();
+                updateShopUI();
+                saveData();
+            }
         };
 
+        function updateShopTimer() {
+            const timer = document.getElementById('shop-timer');
+            const update = () => {
+                const left = dealerShopData.nextRestock - Date.now();
+                if (left <= 0) {
+                    generateDealerItems();
+                    updateShopUI();
+                    return;
+                }
+                const mins = Math.floor(left / 60000);
+                const secs = Math.floor((left % 60000) / 1000);
+                timer.innerText = `Mới: ${mins}:${secs < 10 ? '0' + secs : secs}`;
+            };
+            update();
+            setInterval(update, 1000);
+        }
+
+        // Firebase Operations
+        async function saveData() {
+            if (!userData.uid) return;
+            try {
+                const userRef = doc(db, 'artifacts', appId, 'users', userData.uid, 'profile', 'v1');
+                await setDoc(userRef, {
+                    ...userData,
+                    dealerShopData, // Sync dealer shop too
+                    updatedAt: Date.now()
+                }, { merge: true });
+            } catch (e) { console.error("Save error:", e); }
+        }
+
+        // Initialization
         const initGame = async () => {
             const bar = document.getElementById('loading-bar');
             let progress = 0;
-            const loadingInt = setInterval(() => { progress += 2; if(progress > 98) progress = 98; bar.style.width = progress + "%"; }, 50);
+            const int = setInterval(() => { 
+                progress += 5; 
+                bar.style.width = progress + "%";
+                if(progress >= 100) clearInterval(int);
+            }, 50);
 
-            // Xử lý logic khởi tạo độc lập
-            const setupUser = async (userObj) => {
-                currentUser = userObj;
-                document.getElementById('user-id-display').innerText = `UID: ${currentUser.uid}`;
+            const setupUser = async (user) => {
+                userData.uid = user.uid;
                 
-                // Thử tải từ Cloud nếu có Firebase
-                if (db) {
-                    const userDocRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'gameData');
-                    const snap = await getDoc(userDocRef);
-                    if(snap.exists()) {
-                        const data = snap.data();
-                        inventory = data.inventory || [];
-                        skills = { ...skills, ...(data.skills || {}) };
-                        balance = data.balance || 0; 
-                        usedCodes = data.usedCodes || [];
-                        lastExtraBuyTime = data.lastExtraBuyTime || 0;
-                    }
-                    updateSyncUI('connected');
-                } else {
-                    // Fallback LocalStorage nếu không có Firebase (Dành cho GitHub Pages không config)
-                    const localData = localStorage.getItem('cobac_phelieu_data');
-                    if(localData) {
-                        const data = JSON.parse(localData);
-                        inventory = data.inventory || [];
-                        skills = { ...skills, ...(data.skills || {}) };
-                        balance = data.balance || 0; 
-                        usedCodes = data.usedCodes || [];
-                        lastExtraBuyTime = data.lastExtraBuyTime || 0;
-                    }
-                    updateSyncUI('offline');
+                const userRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'v1');
+                const snap = await getDoc(userRef);
+                
+                if (snap.exists()) {
+                    const cloudData = snap.data();
+                    userData.rolls = cloudData.rolls || 0;
+                    userData.gems = cloudData.gems || 0;
+                    userData.collection = cloudData.collection || [];
+                    userData.wins = cloudData.wins || 0;
+                    if(cloudData.dealerShopData) dealerShopData = cloudData.dealerShopData;
                 }
-                
+
+                if (!dealerShopData.nextRestock || Date.now() > dealerShopData.nextRestock) generateDealerItems();
+
                 updateStats();
                 document.getElementById('btn-roll').disabled = false;
-                clearInterval(loadingInt);
                 bar.style.width = "100%";
-                setTimeout(() => {
-                    document.getElementById('loading-screen').classList.add('opacity-0');
-                    setTimeout(() => {
-                        document.getElementById('loading-screen').classList.add('hidden');
-                        document.getElementById('main-menu').classList.remove('hidden');
-                        showNotif("CHÀO MỪNG ĐẾN VỚI DEV STUDIO", "👋");
-                    }, 1000);
+                
+                setTimeout(() => { 
+                    document.getElementById('loading-screen').classList.add('hidden'); 
+                    document.getElementById('main-menu').classList.remove('hidden'); 
+                    showNotif("CHÀO MỪNG ĐẾN VỚI DEV STUDIO GAME", "👋"); 
                 }, 500);
             };
 
-            if (auth) {
-                try {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                    onAuthStateChanged(auth, (user) => { if(user) setupUser(user); });
-                } catch (e) { 
-                    console.error("Auth Error:", e);
-                    // Nếu lỗi Auth vẫn cho chơi offline
-                    setupUser({ uid: 'offline-player-' + Math.floor(Math.random()*1000) });
+            if (isUsingFirebase) {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
                 }
+                onAuthStateChanged(auth, (u) => { 
+                    if(u) setupUser(u); 
+                });
             } else {
-                // Trường hợp hoàn toàn không có Firebase (GitHub Pages)
-                setupUser({ uid: 'guest-' + Math.floor(Math.random()*1000) });
+                setTimeout(() => {
+                    let localUid = localStorage.getItem('legacy_local_uid');
+                    if (!localUid) { 
+                        localUid = 'LOCAL-' + Math.random().toString(36).substr(2, 9).toUpperCase(); 
+                        localStorage.setItem('legacy_local_uid', localUid); 
+                    }
+                    setupUser({ uid: localUid });
+                }, 1000);
             }
         };
 
-        // Đảm bảo DOM đã sẵn sàng
         window.onload = initGame;
     </script>
 </body>
