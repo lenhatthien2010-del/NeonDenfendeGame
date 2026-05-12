@@ -2628,9 +2628,8 @@ let merchantStock = []; // Current merchant stock
             const seconds = Math.floor((remainingTime % 60000) / 1000);
             
             countdownElement.innerText = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-            // Show actual multiplier when potions are active
-            const currentMultiplier = window.calculateLuckMultiplier();
-            multiplierElement.innerText = `x${currentMultiplier.toFixed(1)}`;
+            // Lucky potions always show x2 buff regardless of base luck
+            multiplierElement.innerText = `x2`;
             
             timerElement.classList.remove('hidden');
         };
