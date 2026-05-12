@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -127,8 +126,48 @@
             100% { transform: scale(1.5); opacity: 0; }
         }
 
-        #inventory-grid::-webkit-scrollbar, #collection-grid::-webkit-scrollbar, #shop-items-container::-webkit-scrollbar, #main-scroll-area::-webkit-scrollbar, #trade-inventory-grid::-webkit-scrollbar, #td-shop-list::-webkit-scrollbar { width: 4px; }
-        #shop-items-container::-webkit-scrollbar-thumb, #main-scroll-area::-webkit-scrollbar-thumb, #trade-inventory-grid::-webkit-scrollbar-thumb, #td-shop-list::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        #inventory-grid::-webkit-scrollbar, #collection-grid::-webkit-scrollbar, #shop-items-container::-webkit-scrollbar, #main-scroll-area::-webkit-scrollbar, #trade-inventory-grid::-webkit-scrollbar, #td-shop-list::-webkit-scrollbar { 
+            width: 6px; 
+            height: 6px;
+        }
+        #inventory-grid::-webkit-scrollbar-track, #collection-grid::-webkit-scrollbar-track, #shop-items-container::-webkit-scrollbar-track, #main-scroll-area::-webkit-scrollbar-track, #trade-inventory-grid::-webkit-scrollbar-track, #td-shop-list::-webkit-scrollbar-track { 
+            background: rgba(51, 65, 85, 0.1); 
+            border-radius: 10px; 
+        }
+        #inventory-grid::-webkit-scrollbar-thumb, #collection-grid::-webkit-scrollbar-thumb, #shop-items-container::-webkit-scrollbar-thumb, #main-scroll-area::-webkit-scrollbar-thumb, #trade-inventory-grid::-webkit-scrollbar-thumb, #td-shop-list::-webkit-scrollbar-thumb { 
+            background: linear-gradient(180deg, #eab308, #f59e0b); 
+            border-radius: 10px; 
+            border: 1px solid rgba(234, 179, 8, 0.3);
+        }
+        #inventory-grid::-webkit-scrollbar-thumb:hover, #collection-grid::-webkit-scrollbar-thumb:hover, #shop-items-container::-webkit-scrollbar-thumb:hover, #main-scroll-area::-webkit-scrollbar-thumb:hover, #trade-inventory-grid::-webkit-scrollbar-thumb:hover, #td-shop-list::-webkit-scrollbar-thumb:hover { 
+            background: linear-gradient(180deg, #f59e0b, #fbbf24); 
+        }
+
+        /* Enhanced Skill Tree Scrollbar */
+        .skill-tree-container::-webkit-scrollbar { 
+            width: 8px; 
+            height: 8px;
+        }
+        .skill-tree-container::-webkit-scrollbar-track { 
+            background: rgba(15, 23, 42, 0.2); 
+            border-radius: 12px; 
+            border: 1px solid rgba(234, 179, 8, 0.1);
+        }
+        .skill-tree-container::-webkit-scrollbar-thumb { 
+            background: linear-gradient(135deg, #eab308 0%, #f59e0b 50%, #fbbf24 100%); 
+            border-radius: 12px; 
+            border: 2px solid rgba(234, 179, 8, 0.4);
+            box-shadow: 0 2px 8px rgba(234, 179, 8, 0.3);
+        }
+        .skill-tree-container::-webkit-scrollbar-thumb:hover { 
+            background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 50%, #fcd34d 100%); 
+            border-color: rgba(251, 191, 36, 0.6);
+            box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+        }
+        .skill-tree-container::-webkit-scrollbar-thumb:active { 
+            background: linear-gradient(135deg, #fbbf24 0%, #fcd34d 100%); 
+            transform: scale(0.95);
+        }
         
         .press-effect:active { transform: scale(0.95); }
         
@@ -334,11 +373,18 @@
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
         }
         
-        .skill-node:hover:not(.locked) {
+        .skill-node:hover:not(.locked):not(.popup-active) {
             transform: translateY(-6px) scale(1.05);
             box-shadow: 0 12px 40px rgba(234, 179, 8, 0.4), 0 0 0 4px rgba(234, 179, 8, 0.2);
             border-color: rgba(234, 179, 8, 0.6);
             background: linear-gradient(135deg, #1e293b 0%, rgba(234, 179, 8, 0.1) 100%);
+        }
+        
+        .skill-node.popup-active:hover {
+            transform: none;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.1);
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
         }
         
         .skill-node.unlocked {
@@ -366,6 +412,15 @@
             filter: grayscale(0.8) brightness(0.7);
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
             border-color: rgba(255, 255, 255, 0.05);
+        }
+        
+        .skill-node.out-of-reach {
+            opacity: 0.2;
+            cursor: not-allowed;
+            filter: grayscale(1) brightness(0.5);
+            background: linear-gradient(135deg, #0f172a 0%, #020617 100%);
+            border-color: rgba(255, 255, 255, 0.02);
+            pointer-events: none;
         }
         
         .skill-node-icon {
@@ -402,13 +457,11 @@
             border-radius: 1rem;
             padding: 1rem;
             min-width: 220px;
-            z-index: 1000;
+            z-index: 100;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.1);
             display: none;
-            top: 50%;
-            left: 100%;
-            transform: translateY(-50%) translateX(1rem);
             backdrop-filter: blur(20px);
+            pointer-events: auto;
         }
         
         .skill-popup.show {
@@ -423,13 +476,14 @@
             border-radius: 1rem;
             padding: 1rem;
             min-width: 220px;
-            z-index: 1000;
+            z-index: 100;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.1);
             display: none;
             top: 50%;
             left: 100%;
-            transform: translateY(-50%) translateX(1rem);
+            transform: translateY(-50%) translateX(0.25rem);
             backdrop-filter: blur(20px);
+            pointer-events: auto;
         }
         
         .luck-popup.show {
@@ -572,6 +626,318 @@
             cursor: pointer;
             margin-top: 4px;
         }
+
+        /* Mobile Responsive Styles for Skill Tree */
+        @media (max-width: 768px) {
+            .skill-tree-container {
+                padding: 1rem;
+                overflow-x: auto;
+                overflow-y: hidden;
+            }
+            
+            .skill-category {
+                margin-bottom: 1.5rem;
+                padding: 1rem;
+                min-width: max-content;
+            }
+            
+            .skill-category-title {
+                font-size: 1rem;
+                margin-bottom: 1rem;
+            }
+            
+            .skill-nodes-container {
+                gap: 1rem;
+                padding: 0.5rem 0;
+                min-height: 80px;
+            }
+            
+            .skill-node {
+                width: 60px;
+                height: 60px;
+            }
+            
+            .skill-node-icon {
+                font-size: 1.5rem;
+            }
+            
+            .skill-node-level {
+                font-size: 0.5rem;
+            }
+            
+            .skill-node:hover:not(.locked) {
+                transform: translateY(-4px) scale(1.02);
+            }
+            
+            .skill-connection {
+                width: 1rem;
+                left: 60px;
+            }
+            
+            .skill-popup {
+                min-width: 180px;
+                padding: 0.75rem;
+                font-size: 0.8rem;
+                z-index: 100;
+                pointer-events: auto;
+            }
+            
+            .luck-popup {
+                min-width: 180px;
+                padding: 0.75rem;
+                font-size: 0.8rem;
+                left: 110%;
+                transform: translateY(-50%) translateX(0.25rem);
+                z-index: 100;
+                pointer-events: auto;
+            }
+            
+            .skill-popup-title {
+                font-size: 0.75rem;
+                margin-bottom: 0.5rem;
+            }
+            
+            .skill-popup-description {
+                font-size: 0.65rem;
+                margin-bottom: 0.75rem;
+            }
+            
+            .skill-popup-price {
+                font-size: 0.7rem;
+                margin-bottom: 0.5rem;
+            }
+            
+            .skill-popup-button {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.65rem;
+            }
+        }
+
+        /* Shop Styles */
+        .shop-container {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            position: relative;
+            overflow-x: auto;
+        }
+        
+        .shop-category {
+            margin-bottom: 3rem;
+            padding: 1.5rem;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1.5rem;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .shop-category:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(15, 23, 42, 0.8);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .shop-category-title {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #eab308;
+            margin-bottom: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .shop-items-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            align-items: start;
+        }
+        
+        .shop-item {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            min-height: 180px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+        
+        .shop-item:hover:not(.disabled) {
+            transform: translateY(-6px) scale(1.02);
+            box-shadow: 0 12px 40px rgba(234, 179, 8, 0.4), 0 0 0 4px rgba(234, 179, 8, 0.2);
+            border-color: rgba(234, 179, 8, 0.6);
+            background: linear-gradient(135deg, #1e293b 0%, rgba(234, 179, 8, 0.1) 100%);
+        }
+        
+        .shop-item.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            filter: grayscale(0.8) brightness(0.7);
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-color: rgba(255, 255, 255, 0.05);
+        }
+        
+        .shop-item-icon {
+            font-size: 3rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .shop-item-rarity {
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .shop-item-name {
+            font-size: 0.9rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+            line-height: 1.2;
+        }
+        
+        .shop-item-description {
+            font-size: 0.75rem;
+            color: #cbd5e1;
+            margin-bottom: 1rem;
+            line-height: 1.4;
+            font-weight: 500;
+            flex-grow: 1;
+        }
+        
+        .shop-item-price {
+            font-size: 1rem;
+            font-weight: 800;
+            color: #22c55e;
+            margin-bottom: 0.75rem;
+        }
+        
+        .shop-item-button {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: linear-gradient(135deg, #eab308 0%, #f59e0b 100%);
+            color: #0f172a;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 0.75rem;
+            font-weight: 800;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 12px rgba(234, 179, 8, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            letter-spacing: 0.05em;
+        }
+        
+        .shop-item-button:hover:not(:disabled) {
+            background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 8px 20px rgba(234, 179, 8, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        .shop-item-button:disabled {
+            background: linear-gradient(135deg, #475569 0%, #334155 100%);
+            color: #94a3b8;
+            cursor: not-allowed;
+            opacity: 0.7;
+            border-color: rgba(255, 255, 255, 0.05);
+            box-shadow: none;
+        }
+
+        /* Extra small mobile devices */
+        @media (max-width: 480px) {
+            .skill-tree-container {
+                padding: 0.75rem;
+            }
+            
+            .skill-category {
+                padding: 0.75rem;
+            }
+            
+            .skill-category-title {
+                font-size: 0.9rem;
+            }
+            
+            .skill-nodes-container {
+                gap: 0.75rem;
+                min-height: 70px;
+            }
+            
+            .skill-node {
+                width: 50px;
+                height: 50px;
+            }
+            
+            .skill-node-icon {
+                font-size: 1.25rem;
+            }
+            
+            .skill-node-level {
+                font-size: 0.45rem;
+            }
+            
+            .skill-connection {
+                width: 0.75rem;
+                left: 50px;
+            }
+            
+            .skill-popup {
+                min-width: 160px;
+                padding: 0.5rem;
+                z-index: 100;
+                pointer-events: auto;
+            }
+            
+            .luck-popup {
+                min-width: 160px;
+                padding: 0.5rem;
+                left: 105%;
+                z-index: 100;
+                pointer-events: auto;
+            }
+            
+            .shop-items-container {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .shop-item {
+                min-height: 160px;
+                padding: 1rem;
+            }
+            
+            .shop-item-icon {
+                font-size: 2.5rem;
+            }
+            
+            .shop-item-name {
+                font-size: 0.8rem;
+            }
+            
+            .shop-item-description {
+                font-size: 0.7rem;
+            }
+            
+            .shop-item-price {
+                font-size: 0.9rem;
+            }
+        }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-50 h-screen w-full select-none">
@@ -687,7 +1053,7 @@
                         </div>
                         <div class="text-2xl">💵</div>
                     </div>
-                    <div onclick="toggleLuckModal()" class="bg-slate-900/80 border-2 border-green-500/30 p-3 rounded-3xl flex items-center justify-between shadow-lg flex-shrink-0 cursor-pointer hover:bg-slate-900/70 transition-colors relative">
+                    <div class="bg-slate-900/80 border-2 border-green-500/30 p-3 rounded-3xl flex items-center justify-between shadow-lg flex-shrink-0 relative">
                         <div>
                             <p class="text-[9px] font-black text-green-500 uppercase tracking-widest">Luck</p>
                             <p id="stats-luck" class="text-xl font-black text-white">x1.00</p>
@@ -723,14 +1089,17 @@
                     </div>
                     
                     <div class="grid grid-cols-2 gap-3">
-                        <button onclick="toggleInventory(true)" class="press-effect bg-slate-800/50 border border-slate-700 hover:bg-slate-800 text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm uppercase">
+                        <button onclick="toggleInventory(true)" class="press-effect bg-blue-600/80 border border-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm uppercase">
                             📦 Kho đồ
                         </button>
-                        <button onclick="toggleCollection(true)" class="press-effect bg-slate-800/50 border border-slate-700 hover:bg-slate-800 text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm uppercase">
+                        <button onclick="toggleCollection(true)" class="press-effect bg-purple-600/80 border border-purple-500 hover:bg-purple-600 text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm uppercase">
                             🏆 Bộ sưu tập
                         </button>
-                        <button onclick="toggleShop(true)" class="col-span-2 press-effect bg-slate-100 text-slate-950 font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm uppercase">
-                            🛒 Kỹ năng
+                        <button onclick="toggleShop(true)" class="press-effect bg-orange-600/80 border border-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm uppercase">
+                            🛒 Cửa hàng
+                        </button>
+                        <button onclick="toggleSkillTree(true)" class="press-effect bg-green-600/80 border border-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm uppercase">
+                            🌳 Kỹ năng
                         </button>
                         <button onclick="openTD()" class="relative col-span-2 press-effect bg-gradient-to-r from-red-600 to-orange-600 text-white font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm uppercase shadow-[0_0_15px_rgba(239,68,68,0.4)]">
                             ⚔️ THỦ THÀNH NGUYÊN TỐ
@@ -750,6 +1119,11 @@
                         <div>
                             <p class="text-slate-500 text-[10px] uppercase font-bold mb-1">Tổng vật phẩm</p>
                             <p id="stats-count" class="text-xl font-black">0</p>
+                        </div>
+                        <div class="w-px h-10 bg-slate-800"></div>
+                        <div>
+                            <p class="text-slate-500 text-[10px] uppercase font-bold mb-1">Total roll</p>
+                            <p id="stats-total-rolls" class="text-xl font-black text-yellow-400">0</p>
                         </div>
                         <div class="w-px h-10 bg-slate-800"></div>
                         <div>
@@ -793,6 +1167,15 @@
                             <input type="text" id="admin-ele-input" placeholder="Tên +Số lượng (VD: Lửa +10)" class="flex-grow bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-bold text-blue-400 outline-none">
                             <button onclick="adminGiveElement()" class="bg-slate-700 px-4 rounded-lg font-black text-[10px] uppercase">Give</button>
                         </div>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase">Tuỳ Chỉnh Luck (Multiplier)</p>
+                        <div class="flex gap-2">
+                            <input type="number" id="admin-luck-input" placeholder="Luck multiplier (0-1000+)" min="0" value="0" class="flex-grow bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-bold text-green-400 outline-none">
+                            <button onclick="adminSetLuck()" class="bg-green-700 px-4 rounded-lg font-black text-[10px] uppercase">Set</button>
+                        </div>
+                        <p class="text-[8px] text-slate-600">Hiện tại: <span id="admin-current-luck">0</span>x</p>
                     </div>
                 </div>
                 <p class="mt-6 text-center text-[8px] text-slate-600 font-bold uppercase tracking-widest">DEV STUDIO ADMIN TOOLS</p>
@@ -975,20 +1358,20 @@
         </div>
 
         <!-- SKILL TREE MODAL -->
-        <div id="shop-modal" class="hidden fixed inset-0 z-50 modal-bg p-4 sm:p-8">
+        <div id="skill-modal" class="hidden fixed inset-0 z-50 modal-bg p-4 sm:p-8">
             <div class="max-w-4xl mx-auto h-full flex flex-col">
                 <div class="flex justify-between items-end mb-6">
                     <div>
                         <h2 class="text-4xl font-black text-white italic leading-none">CÂY KỸ NĂNG</h2>
                         <p class="text-slate-400 text-xs font-bold uppercase mt-1">Nâng cấp theo cây kỹ năng</p>
                     </div>
-                    <button onclick="toggleShop(false)" class="p-3 bg-slate-800 hover:bg-slate-700 rounded-2xl transition-colors press-effect">
+                    <button onclick="toggleSkillTree(false)" class="p-3 bg-slate-800 hover:bg-slate-700 rounded-2xl transition-colors press-effect">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                     </button>
                 </div>
 
-                <div class="flex-grow overflow-y-auto pr-2 pb-32">
-                    <div class="skill-tree-container">
+                <div class="skill-tree-container flex-grow overflow-y-auto pr-2 pb-32" style="background: transparent; border-radius: 0; padding: 0 0.5rem 8rem 0;">
+                    <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 1.5rem; padding: 2rem; overflow-x: auto;">
                         
                         <!-- Category: Automation -->
                         <div class="skill-category">
@@ -1036,50 +1419,7 @@
 
                     </div>
 
-                    <!-- Special Pack Button -->
-                    <div class="mt-6">
-                        <button onclick="togglePackShop(true)" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 p-6 rounded-3xl text-left press-effect shadow-lg">
-                            <div class="flex justify-between items-center">
-                                <div>
-                                    <h3 class="text-xl font-black text-white uppercase italic">Special Pack</h3>
-                                    <p class="text-[10px] text-purple-200 font-bold uppercase">Sở hữu combo nguyên tố cực hiếm</p>
-                                </div>
-                                <span class="text-3xl">🎁</span>
-                            </div>
-                        </button>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- PACK SHOP MODAL -->
-        <div id="pack-shop-modal" class="hidden fixed inset-0 z-[55] modal-bg p-4 sm:p-8">
-            <div class="max-w-md mx-auto h-full flex flex-col">
-                <div class="flex justify-between items-end mb-6">
-                    <div>
-                        <h2 class="text-4xl font-black text-purple-400 italic leading-none uppercase">Elemental Pack</h2>
-                        <p class="text-slate-400 text-xs font-bold uppercase mt-1">Cửa hàng đặc biệt</p>
-                    </div>
-                    <button onclick="togglePackShop(false)" class="p-3 bg-slate-800 rounded-2xl press-effect">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                    </button>
-                </div>
-                <div class="flex flex-col gap-4 overflow-y-auto pr-2 pb-10">
-                    
-                    <!-- SUMMER2026 PACK (LIMITED) -->
-                    <div class="bg-slate-900 border-2 border-cyan-400 p-6 rounded-3xl shadow-xl summer-glow relative flex-shrink-0">
-                        <div class="text-center mb-4 relative z-10">
-                            <div class="text-5xl mb-2">🏖️</div>
-                            <h3 class="text-xl font-black uppercase text-cyan-400">SUMMER2026 PACK</h3>
-                            <p class="text-xs text-slate-400 font-bold">VẬT PHẨM GIỚI HẠN - KHÔNG THỂ GIAO DỊCH, KHÔNG THỂ BÁN</p>
-                            <p class="text-[9px] text-cyan-400 mt-1 uppercase font-bold italic">LIMITED EDITION - MUA 1 LẦN DUY NHẤT</p>
-                        </div>
-                        <div class="grid grid-cols-1 gap-2 mt-4 relative z-10">
-                            <button id="btn-buy-summer" onclick="buySummerPack()" class="bg-cyan-500 text-slate-950 py-4 rounded-xl font-black text-[10px] uppercase press-effect hover:bg-cyan-400 transition-colors">MUA VÀ MỞ NGAY</button>
-                        </div>
-                        <p class="text-center text-green-400 font-black mt-4 relative z-10">GIÁ: 50,000,000$</p>
-                    </div>
-
                 </div>
             </div>
         </div>
@@ -1107,20 +1447,17 @@
                     </button>
                 </div>
                 
-                <div id="inventory-grid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 flex-grow content-start overflow-y-auto pr-2"></div>
-
-                <div id="pagination-controls" class="mt-8 flex items-center justify-between bg-slate-900/50 p-4 rounded-3xl border border-slate-800">
-                    <button onclick="changePage(-1)" id="prev-page" class="p-3 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none rounded-xl transition-all press-effect">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                <!-- Category Tabs -->
+                <div class="flex gap-2 mb-4">
+                    <button id="tab-elemental" onclick="switchInventoryTab('elemental')" class="px-4 py-2 bg-yellow-500 text-slate-950 font-black rounded-lg text-sm uppercase transition-all press-effect">
+                        ⚡ Elemental
                     </button>
-                    <div class="text-center">
-                        <span id="current-page-text" class="text-white font-black text-lg uppercase">Trang 1</span>
-                        <p id="total-pages-text" class="text-slate-500 text-[10px] font-bold uppercase tracking-widest">TRÊN 10 TRANG</p>
-                    </div>
-                    <button onclick="changePage(1)" id="next-page" class="p-3 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none rounded-xl transition-all press-effect">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                    <button id="tab-items" onclick="switchInventoryTab('items')" class="px-4 py-2 bg-slate-700 text-slate-300 font-black rounded-lg text-sm uppercase transition-all press-effect">
+                        🧪 Items
                     </button>
                 </div>
+                
+                <div id="inventory-grid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 flex-grow content-start overflow-y-auto pr-2"></div>
             </div>
         </div>
 
@@ -1173,32 +1510,63 @@
             </div>
         </div>
 
-        <!-- LUCK MODAL -->
-        <div id="luck-modal" class="hidden fixed inset-0 z-40 modal-bg p-4 sm:p-8">
-            <div class="max-w-md mx-auto h-full flex flex-col">
+        <!-- SHOP MODAL -->
+        <div id="shop-modal" class="hidden fixed inset-0 z-40 modal-bg p-4 sm:p-8">
+            <div class="max-w-4xl mx-auto h-full flex flex-col">
                 <div class="flex justify-between items-end mb-6">
                     <div>
-                        <h2 class="text-4xl font-black text-white italic leading-none uppercase">Chi tiết May mắn</h2>
-                        <p class="text-slate-400 text-xs font-bold uppercase mt-1">Các yếu tố ảnh hưởng đến may mắn</p>
+                        <h2 class="text-4xl font-black text-white italic leading-none uppercase">Cửa hàng</h2>
+                        <p id="shop-restock-text" class="text-slate-400 text-xs font-bold uppercase mt-1">Restock trong: 0:00</p>
                     </div>
-                    <button onclick="toggleLuckModal()" class="p-3 bg-slate-800 hover:bg-slate-700 rounded-2xl transition-colors press-effect">
+                    <button onclick="toggleShop(false)" class="p-3 bg-slate-800 hover:bg-slate-700 rounded-2xl transition-colors press-effect">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                     </button>
                 </div>
-                
-                <div class="bg-slate-900/50 rounded-3xl p-4 border border-slate-800 flex flex-col gap-4 mb-4">
-                    <div class="flex items-center justify-between">
-                        <span class="text-lg font-black text-white">Tổng cộng:</span>
-                        <span id="luck-total-display" class="text-2xl font-black text-green-400">x1.00</span>
+
+                <div class="shop-container flex-grow overflow-y-auto pr-2 pb-32" style="background: transparent; border-radius: 0; padding: 0 0.5rem 8rem 0;">
+                    <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 1.5rem; padding: 2rem; overflow-x: auto;">
+                        
+                        <!-- Category: Merchant -->
+                        <div class="shop-category">
+                            <h3 class="shop-category-title">
+                                <span>🧪</span>
+                                MERCHANT
+                            </h3>
+                            <div class="shop-items-container" id="merchant-items">
+                                <!-- Items will be generated by JavaScript -->
+                            </div>
+                        </div>
+
+                        <!-- Category: Special Packs -->
+                        <div class="shop-category">
+                            <h3 class="shop-category-title">
+                                <span>🎁</span>
+                                SPECIAL PACKS
+                            </h3>
+                            <div class="shop-items-container" id="special-items">
+                                <!-- Items will be generated by JavaScript -->
+                            </div>
+                        </div>
+
                     </div>
                 </div>
+            </div>
+        </div>
 
-                <div class="bg-slate-900/50 rounded-3xl p-4 border border-slate-800 flex flex-col gap-4">
-                    <div>
-                        <h3 class="text-lg font-black text-green-400 uppercase mb-4">Các yếu tố</h3>
-                        <div id="luck-factors-list" class="space-y-3">
-                        </div>
-                    </div>
+        <!-- PURCHASE CONFIRMATION MODAL -->
+        <div id="purchase-confirm-modal" class="hidden fixed inset-0 z-[65] modal-bg flex items-center justify-center p-6">
+            <div class="bg-slate-900 border-2 border-yellow-500 p-8 rounded-[2rem] max-w-sm w-full shadow-2xl text-center">
+                <div id="purchase-icon" class="text-5xl mb-4">🛒</div>
+                <h2 class="text-xl font-black mb-2 uppercase">Xác Nhận Mua</h2>
+                <p id="purchase-item-name" class="text-slate-300 text-sm mb-2 font-bold"></p>
+                <p id="purchase-item-desc" class="text-slate-400 text-[10px] mb-4"></p>
+                <div class="bg-slate-950/80 border border-slate-800 p-4 rounded-2xl mb-6">
+                    <p class="text-[10px] text-slate-500 font-black uppercase mb-1">Giá</p>
+                    <p id="purchase-price" class="text-2xl font-black text-green-400">0$</p>
+                </div>
+                <div class="flex flex-col gap-3">
+                    <button id="btn-confirm-purchase" class="bg-green-600 hover:bg-green-500 text-white font-black py-4 rounded-xl transition-all press-effect uppercase text-xs">Xác Nhận Mua</button>
+                    <button onclick="closePurchaseConfirm()" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition-all press-effect uppercase text-[10px]">Hủy</button>
                 </div>
             </div>
         </div>
@@ -1237,7 +1605,8 @@
                     </div>
                     <div id="congrats-icon" class="text-8xl mb-6 drop-shadow-lg">🗡️</div>
                     <h3 id="congrats-name" class="text-3xl font-black mb-2 leading-tight">Vật phẩm</h3>
-                    <p id="congrats-price" class="text-green-400 font-bold mb-8">0$</p>
+                    <p id="congrats-price" class="text-green-400 font-bold mb-2">0$</p>
+                    <p id="congrats-dropchance" class="text-blue-500 font-medium mb-4 text-sm">1 in 1</p>
                     <p id="congrats-status" class="hidden text-white/50 text-[10px] font-bold mb-4 uppercase tracking-widest">+1 VÀO NGĂN XẾP TRÙNG</p>
                     <button id="btn-congrats-close" onclick="closeCongrats()" class="press-effect w-full bg-white text-slate-950 font-black py-4 rounded-2xl hover:bg-slate-200 transition-colors shadow-xl uppercase">Tiếp tục</button>
                 </div>
@@ -1261,44 +1630,49 @@
         };
 
         const ELEMENT_POOL = [
-            { name: "Ma Trận", rarity: "ULTIMATE", weight: 0.01, price: 70000000, icon: "💠" },
-            { name: "Phóng xạ", rarity: "ULTIMATE", weight: 0.01, price: 50000000, icon: "☢️" }, 
-            { name: "Quỷ", rarity: "GODLY", weight: 0.05, price: 25000000, icon: "👿" },
-            { name: "Sáng Thế", rarity: "GODLY", weight: 0.08, price: 10000000, icon: "👁️" },
-            { name: "Tinh Tú", rarity: "GODLY", weight: 0.03, price: 15000000, icon: "🌟" },
-            { name: "Vĩnh Hằng", rarity: "GODLY", weight: 0.05, price: 5000000, icon: "♾️" },
-            { name: "Hỗn Mang", rarity: "GODLY", weight: 0.04, price: 2500000, icon: "💥" },
-            { name: "Sự Sống", rarity: "MYTHIC", weight: 0.3, price: 1200000, icon: "🧬" },
-            { name: "Không Gian", rarity: "MYTHIC", weight: 0.3, price: 950000, icon: "🌀" },
-            { name: "Thời Gian", rarity: "MYTHIC", weight: 0.3, price: 800000, icon: "⏳" },
-            { name: "Vũ Trụ", rarity: "LEGENDARY", weight: 1.0, price: 450000, icon: "☄️" },
-            { name: "Âm Dương", rarity: "LEGENDARY", weight: 0.8, price: 300000, icon: "☯️" },
-            { name: "Huyết Nguyệt", rarity: "LEGENDARY", weight: 0.7, price: 220000, icon: "🩸" },
-            { name: "Hư Không", rarity: "LEGENDARY", weight: 0.6, price: 150000, icon: "🌌" },
-            { name: "Pha Lê", rarity: "MYSTIC", weight: 3.0, price: 85000, icon: "🔮" },
-            { name: "Ánh Sáng", rarity: "MYSTIC", weight: 3.5, price: 70000, icon: "✨" },
-            { name: "Bóng Tối", rarity: "MYSTIC", weight: 4.0, price: 65000, icon: "🌑" },
-            { name: "Kim Cương", rarity: "MYSTIC", weight: 4.5, price: 50000, icon: "💎" },
-            { name: "Khói", rarity: "MYSTIC", weight: 5.0, price: 35000, icon: "🌫️" },
-            { name: "Sấm Sét", rarity: "RARE", weight: 6.0, price: 15000, icon: "⚡" },
-            { name: "Băng Giá", rarity: "RARE", weight: 6.5, price: 12500, icon: "❄️" },
-            { name: "Vàng", rarity: "RARE", weight: 7.0, price: 10000, icon: "🪙" },
-            { name: "Dung Nham", rarity: "RARE", weight: 7.5, price: 8500, icon: "🌋" },
-            { name: "Bạc", rarity: "RARE", weight: 8.0, price: 6000, icon: "🥈" },
-            { name: "Lửa", rarity: "NATURAL", weight: 10.0, price: 2500, icon: "🔥" },
-            { name: "Nước", rarity: "NATURAL", weight: 10.5, price: 2200, icon: "💧" },
-            { name: "Gió", rarity: "NATURAL", weight: 11.0, price: 1800, icon: "🌪️" },
-            { name: "Thiên Nhiên", rarity: "NATURAL", weight: 11.5, price: 1500, icon: "🌿" },
-            { name: "Sắt", rarity: "NATURAL", weight: 12.0, price: 1200, icon: "⛓️" },
-            { name: "Đất", rarity: "BASIC", weight: 15.0, price: 500, icon: "🪨" },
-            { name: "Sỏi", rarity: "BASIC", weight: 16.0, price: 350, icon: "🏜️" },
-            { name: "Than", rarity: "BASIC", weight: 17.0, price: 200, icon: "⬛" },
-            { name: "Cát", rarity: "BASIC", weight: 18.0, price: 100, icon: "🏖️" },
-            { name: "Đồng", rarity: "BASIC", weight: 20.0, price: 50, icon: "🥉" }
+            // ULTIMATE: Cực hiếm
+            { name: "Ma Trận", rarity: "ULTIMATE", chance: 250000, price: 70000000, icon: "💠", color: "#60a5fa" },
+            { name: "Phóng xạ", rarity: "ULTIMATE", chance: 100000, price: 50000000, icon: "☢️", color: "#4ade80" }, 
+
+            // GODLY: Hàng vạn lần mới ra
+            { name: "Tinh Tú", rarity: "GODLY", chance: 50000, price: 35000000, icon: "🌟", color: "#fbbf24" },
+            { name: "Hỗn Mang", rarity: "GODLY", chance: 25000, price: 25000000, icon: "💥", color: "#f87171" },
+            { name: "Quỷ", rarity: "GODLY", chance: 10000, price: 15000000, icon: "👿", color: "#a855f7" },
+            { name: "Vĩnh Hằng", rarity: "GODLY", chance: 5000, price: 10000000, icon: "♾️", color: "#f472b6" },
+            { name: "Sáng Thế", rarity: "GODLY", chance: 2500, price: 7500000, icon: "👁️", color: "#f472b6" },
+
+            // MYTHIC: Hàng ngàn lần
+            { name: "Sự Sống", rarity: "MYTHIC", chance: 1500, price: 4000000, icon: "🧬", color: "#2dd4bf" },
+            { name: "Không Gian", rarity: "MYTHIC", chance: 1000, price: 2500000, icon: "🌀", color: "#818cf8" },
+            { name: "Thời Gian", rarity: "MYTHIC", chance: 750, price: 1500000, icon: "⏳", color: "#818cf8" },
+
+            // LEGENDARY: Hàng trăm lần
+            { name: "Vũ Trụ", rarity: "LEGENDARY", chance: 400, price: 800000, icon: "☄️", color: "#94a3b8" },
+            { name: "Âm Dương", rarity: "LEGENDARY", chance: 300, price: 600000, icon: "☯️", color: "#ffffff" },
+            { name: "Huyết Nguyệt", rarity: "LEGENDARY", chance: 200, price: 450000, icon: "🩸", color: "#ef4444" },
+            { name: "Hư Không", rarity: "LEGENDARY", chance: 150, price: 300000, icon: "🌌", color: "#6366f1" },
+
+            // MYSTIC: Bắt đầu dễ ra hơn nhưng vẫn phải tầm 50-100 lần quay
+            { name: "Pha Lê", rarity: "MYSTIC", chance: 100, price: 180000, icon: "🔮", color: "#c084fc" },
+            { name: "Ánh Sáng", rarity: "MYSTIC", chance: 80, price: 120000, icon: "✨", color: "#fbbf24" },
+            { name: "Bóng Tối", rarity: "MYSTIC", chance: 60, price: 90000, icon: "🌑", color: "#475569" },
+            { name: "Kim Cương", rarity: "MYSTIC", chance: 50, price: 60000, icon: "💎", color: "#38bdf8" },
+            { name: "Khói", rarity: "MYSTIC", chance: 40, price: 40000, icon: "🌫️", color: "#94a3b8" },
+
+            // RARE & NATURAL: Nhóm "rác" cao cấp
+            { name: "Sấm Sét", rarity: "RARE", chance: 25, price: 25000, icon: "⚡", color: "#fbbf24" },
+            { name: "Băng Giá", rarity: "RARE", chance: 20, price: 18000, icon: "❄️", color: "#7dd3fc" },
+            { name: "Lửa", rarity: "NATURAL", chance: 15, price: 4000, icon: "🔥", color: "#f97316" },
+            { name: "Nước", rarity: "NATURAL", chance: 10, price: 3200, icon: "💧", color: "#3b82f6" },
+
+            // BASIC: Nhóm xuất hiện thường xuyên nhất (Tỉ lệ cực thấp để nhường chỗ cho Đồng)
+            { name: "Đất", rarity: "BASIC", chance: 5, price: 800, icon: "🪨", color: "#78350f" },
+            { name: "Cát", rarity: "BASIC", chance: 3, price: 150, icon: "🏖️", color: "#fde047" },
+            { name: "Đồng", rarity: "BASIC", chance: 1, price: 50, icon: "🥉", color: "#b45309" }
         ];
         
         const LIMITED_ELEMENTS = [
-            { name: "Summer2026 Limited", rarity: "LIMITED", weight: 0, price: 50000000, icon: "🍍", isLimited: true, displayPrice: "VÔ GIÁ" }
+            { name: "Summer2026 Limited", rarity: "LIMITED", chance: 0, price: 50000000, icon: "🍍", isLimited: true, displayPrice: "VÔ GIÁ" }
         ];
 
         const TD_STATS = {
@@ -1326,16 +1700,23 @@
         let inventory = [];
 let balance = 0; 
 let tdWins = 0; 
+let totalRolls = 0; // New total roll counter
 let currentPage = 1;
-const itemsPerPage = 15;
+const itemsPerPage = 12;
 let currentSelectedItem = null;
-let skills = { autoRoll: false, lucky: false, speedX2: false, autoSell: false, x2Sell: false };
+let skills = { autoRoll: false, skillTree: false, speed1: false, speed2: false, speed3: false, speed4: false, speed5: false, economy1: false, economy2: false, economy3: false, economy4: false, economy5: false, autoSell: false, x2Sell: false };
 let gamepass = { vip1: false };
 let autoSellSettings = { enabled: false, filters: [] };
 let usedCodes = [];
 let lastPackBuyTimes = { mythicCombo: 0, godlySingle: 0 };
 let collectionTracking = new Set(); // Lưu trữ các element đã được mở khoá vĩnh viễn trong collection
 let currentLuckMultiplier = 1.0; // Track current luck multiplier
+let activePotions = []; // Track active luck potions with end times
+let potionLuckBonus = 0; // Current luck bonus from potions
+let currentInventoryTab = 'elemental'; // Current inventory tab
+let currentShopTab = 'merchant'; // Current shop tab
+let shopRestockTime = 0; // When shop will restock
+let merchantStock = []; // Current merchant stock
         
         // Helper function để thêm element vào collection tracking
         const addToCollectionTracking = (elementName) => {
@@ -1386,6 +1767,24 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
                         price: 50000,
                         requires: null,
                         level: 1
+                    },
+                    {
+                        id: "lucky2",
+                        name: "Bùa May Mắn Cấp 2",
+                        icon: "🍀",
+                        description: "Tổng cộng 25% may mắn khi quay (bao gồm các node trước đó).",
+                        price: 200000,
+                        requires: "lucky",
+                        level: 2
+                    },
+                    {
+                        id: "lucky3",
+                        name: "Bùa May Mắn Cấp 3",
+                        icon: "🍀",
+                        description: "Tổng cộng 35% may mắn khi quay (bao gồm các node trước đó).",
+                        price: 450000,
+                        requires: "lucky2",
+                        level: 3
                     }
                 ]
             },
@@ -1394,13 +1793,49 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
                 icon: "⚡",
                 nodes: [
                     {
-                        id: "speedX2",
-                        name: "Tăng Tốc Độ",
-                        icon: "⏩",
-                        description: "Tăng 15% tốc độ quay tự động.",
+                        id: "speed1",
+                        name: "Tăng Tốc Độ I",
+                        icon: "⚡",
+                        description: "Tăng 10% tốc độ quay tự động.",
                         price: 50000,
                         requires: null,
                         level: 1
+                    },
+                    {
+                        id: "speed2",
+                        name: "Tăng Tốc Độ II",
+                        icon: "⚡",
+                        description: "Tăng 20% tốc độ quay tự động.",
+                        price: 200000,
+                        requires: "speed1",
+                        level: 2
+                    },
+                    {
+                        id: "speed3",
+                        name: "Tăng Tốc Độ III",
+                        icon: "⚡",
+                        description: "Tăng 30% tốc độ quay tự động.",
+                        price: 500000,
+                        requires: "speed2",
+                        level: 3
+                    },
+                    {
+                        id: "speed4",
+                        name: "Tăng Tốc Độ IV",
+                        icon: "⚡",
+                        description: "Tăng 40% tốc độ quay tự động.",
+                        price: 1150000,
+                        requires: "speed3",
+                        level: 4
+                    },
+                    {
+                        id: "speed5",
+                        name: "Tăng Tốc Độ V",
+                        icon: "⚡",
+                        description: "Tăng 50% tốc độ quay tự động.",
+                        price: 3000000,
+                        requires: "speed4",
+                        level: 5
                     }
                 ]
             },
@@ -1409,16 +1844,52 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
                 icon: "💰",
                 nodes: [
                     {
-                        id: "x2Sell",
-                        name: "Thương Nhân",
+                        id: "economy1",
+                        name: "Kinh Tế I",
                         icon: "💰",
                         description: "Tăng 5% số tiền khi bán bất kỳ vật phẩm nào.",
                         price: 50000,
                         requires: null,
                         level: 1
+                    },
+                    {
+                        id: "economy2",
+                        name: "Kinh Tế II",
+                        icon: "💰",
+                        description: "Tăng 10% số tiền khi bán bất kỳ vật phẩm nào.",
+                        price: 200000,
+                        requires: "economy1",
+                        level: 2
+                    },
+                    {
+                        id: "economy3",
+                        name: "Kinh Tế III",
+                        icon: "💰",
+                        description: "Tăng 15% số tiền khi bán bất kỳ vật phẩm nào.",
+                        price: 500000,
+                        requires: "economy2",
+                        level: 3
+                    },
+                    {
+                        id: "economy4",
+                        name: "Kinh Tế IV",
+                        icon: "💰",
+                        description: "Tăng 20% số tiền khi bán bất kỳ vật phẩm nào.",
+                        price: 1150000,
+                        requires: "economy3",
+                        level: 4
+                    },
+                    {
+                        id: "economy5",
+                        name: "Kinh Tế V",
+                        icon: "💰",
+                        description: "Tăng 25% số tiền khi bán bất kỳ vật phẩm nào.",
+                        price: 3000000,
+                        requires: "economy4",
+                        level: 5
                     }
                 ]
-            }
+            },
         };
 
         let currentPopup = null;
@@ -1632,7 +2103,9 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
             try {
                 const dataToSave = { 
                     inventory, skills, gamepass, balance, usedCodes, lastPackBuyTimes, autoSellSettings,
-                    tdWins, lastTradeTime, collectionTracking: Array.from(collectionTracking), lastUpdate: new Date().toISOString()
+                    tdWins, lastTradeTime, collectionTracking: Array.from(collectionTracking), totalRolls, 
+                    activePotions, currentInventoryTab, currentShopTab, shopRestockTime, merchantStock, 
+                    adminLuckBonus: window.adminLuckBonus || 0, lastUpdate: new Date().toISOString()
                 };
                 // GIỮ NGUYÊN KEY CŨ: 'legacy_collection_save_v3' để không làm mất data người chơi
                 localStorage.setItem('legacy_collection_save_v3', JSON.stringify(dataToSave));
@@ -1641,16 +2114,93 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
             }
         };
 
+        const calculateEconomyMultiplier = () => {
+            let multiplier = 1.0;
+            
+            // Add economy bonuses from all unlocked economy nodes
+            if (skills.economy1) multiplier += 0.05; // +5% from economy 1
+            if (skills.economy2) multiplier += 0.05; // +5% from economy 2 (total 10%)
+            if (skills.economy3) multiplier += 0.05; // +5% from economy 3 (total 15%)
+            if (skills.economy4) multiplier += 0.05; // +5% from economy 4 (total 20%)
+            if (skills.economy5) multiplier += 0.05; // +5% from economy 5 (total 25%)
+            
+            return multiplier;
+        };
+
+        // =====================================================
+        // INDEPENDENT ROLL SYSTEM - Sol's RNG Style
+        // Mỗi item có chance cố định (1 in X). Tỉ lệ không thay đổi khi thêm item mới.
+        // Kiểm tra independent từ rare nhất đến common nhất.
+        // Ví dụ: Ma Trận (1 in 100000), Phóng xạ (1 in 50000), ..., Đồng (1 in 1).
+        // Đồng luôn có chance: 1 để đảm bảo luôn trả về kết quả.
+        // =====================================================
+
+        // Rarities áp dụng luck boost
+        const LUCK_BOOSTED_RARITIES = new Set(['ULTIMATE', 'GODLY', 'MYTHIC', 'LEGENDARY', 'MYSTIC']);
+
+        // Trả về xác suất thực tế (dạng "1 in X") của item
+        const calculateDropRate = (itemName) => {
+            const item = ELEMENT_POOL.find(el => el.name === itemName);
+            if (!item) return 0;
+            return item.chance;
+        };
+
+        // Hàm roll chính theo Independent Roll — dùng cho cả animation preview lẫn roll thật
+        // luckMultiplier: 1.0 = không luck, 1.35 = +35% luck, v.v.
+        const rollFromPool = (luckMultiplier = 1.0) => {
+            // Sắp xếp elements theo chance giảm dần (rare nhất đứng đầu)
+            const sortedElements = [...ELEMENT_POOL].sort((a, b) => b.chance - a.chance);
+            
+            // Duyệt qua danh sách đã sắp xếp
+            for (const element of sortedElements) {
+                let adjustedChance = element.chance;
+                
+                // Áp dụng luck boost cho các rarity được chọn
+                if (luckMultiplier > 1.0 && LUCK_BOOSTED_RARITIES.has(element.rarity)) {
+                    adjustedChance = Math.max(1, Math.round(element.chance / luckMultiplier));
+                }
+                
+                // Kiểm tra independent roll
+                if (Math.random() < 1 / adjustedChance) {
+                    return element;
+                }
+            }
+            
+            // Fallback - luôn trả về Đồng (chance: 1)
+            return ELEMENT_POOL.find(el => el.name === "Đồng") || ELEMENT_POOL[ELEMENT_POOL.length - 1];
+        };
+
+        const getWeightedRandomItem = () => {
+            // Sử dụng cùng logic Independent Roll nhưng không có luck
+            return rollFromPool(1.0);
+        };
+
+        const calculateSpeedMultiplier = () => {
+            let multiplier = 1.0;
+            
+            // Add speed bonuses from all unlocked speed nodes
+            if (skills.speed1) multiplier += 0.10; // +10% from speed 1
+            if (skills.speed2) multiplier += 0.10; // +10% from speed 2 (total 20%)
+            if (skills.speed3) multiplier += 0.10; // +10% from speed 3 (total 30%)
+            if (skills.speed4) multiplier += 0.10; // +10% from speed 4 (total 40%)
+            if (skills.speed5) multiplier += 0.10; // +10% from speed 5 (total 50%)
+            
+            return multiplier;
+        };
+
         const calculateLuckMultiplier = () => {
             let multiplier = 1.0;
             
-            // Skill tree luck bonus
-            if (skills.lucky) multiplier += 0.15; // +15% from lucky skill
+            // Skill tree luck bonus - sum all unlocked luck nodes
+            if (skills.lucky) multiplier += 0.15; // +15% from first lucky skill
+            if (skills.lucky2) multiplier += 0.10; // +10% from second lucky skill (total 25%)
+            if (skills.lucky3) multiplier += 0.10; // +10% from third lucky skill (total 35%)
             
             // Gamepass luck bonus
             if (gamepass.vip1) multiplier += 0.25; // +25% from VIP 1
             
-            // Future: Add other luck sources here (packs, buffs, etc.)
+            // Add potion luck bonus
+            multiplier += potionLuckBonus;
             
             return multiplier;
         };
@@ -1681,9 +2231,18 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
             document.getElementById('stats-count').innerText = totalItems.toLocaleString();
             document.getElementById('stats-value').innerText = totalValue.toLocaleString() + '$';
             document.getElementById('stats-balance').innerText = balance.toLocaleString() + '$';
-            document.getElementById('inventory-count-text').innerText = `${totalItems} VẬT PHẨM (${inventory.length} LOẠI)`;
-            document.getElementById('collection-progress-text').innerText = `TIẾN ĐỘ: ${uniqueOwned}/${totalPoolCount}`;
+            document.getElementById('stats-total-rolls').innerText = totalRolls.toLocaleString();
             document.getElementById('td-wins-count').innerText = tdWins;
+
+            // Chỉ cập nhật các element trong modal khi modal đang mở (tránh DOM query vô ích)
+            const invModalOpen = !document.getElementById('inventory-modal').classList.contains('hidden');
+            const collModalOpen = !document.getElementById('collection-modal').classList.contains('hidden');
+            const shopModalOpen = !document.getElementById('shop-modal').classList.contains('hidden');
+
+            if (invModalOpen || collModalOpen) {
+                document.getElementById('inventory-count-text').innerText = `${totalItems} VẬT PHẨM (${inventory.length} LOẠI)`;
+                document.getElementById('collection-progress-text').innerText = `TIẾN ĐỘ: ${uniqueOwned}/${totalPoolCount}`;
+            }
             
             // Update luck display
             updateLuckDisplay();
@@ -1691,8 +2250,7 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
             // Update inventory balance with animation
             const inventoryBalance = document.getElementById('inventory-balance');
             if (inventoryBalance) {
-                // Always trigger animation when inventory modal is open
-                if (!document.getElementById('inventory-modal').classList.contains('hidden')) {
+                if (invModalOpen) {
                     updateInventoryBalance();
                 } else {
                     inventoryBalance.innerText = balance.toLocaleString() + '$';
@@ -1702,9 +2260,16 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
             if (skills.autoRoll) document.getElementById('auto-roll-control').classList.remove('hidden');
             if (skills.autoSell) {
                 document.getElementById('auto-sell-control').classList.remove('hidden');
-                renderAutoSellFilters();
+                // renderAutoSellFilters chỉ cần khi modal auto-sell đang mở
+                if (!document.getElementById('auto-sell-modal').classList.contains('hidden')) {
+                    renderAutoSellFilters();
+                }
             }
-            updateShopUI();
+
+            // updateShopUI, updatePackButtonStates, updateGamepassUI chỉ cần khi shop modal mở
+            if (shopModalOpen) {
+                updateShopUI();
+            }
             updatePackButtonStates();
             updateGamepassUI();
         };
@@ -1772,66 +2337,7 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
             }
         };
 
-        window.toggleLuckModal = () => {
-            document.getElementById('luck-modal').classList.toggle('hidden');
-            if (!document.getElementById('luck-modal').classList.contains('hidden')) {
-                renderLuckFactors();
-            }
-        };
-
-        const renderLuckFactors = () => {
-            const factorsList = document.getElementById('luck-factors-list');
-            const totalDisplay = document.getElementById('luck-total-display');
-            
-            // Calculate luck factors
-            const factors = [];
-            let totalMultiplier = 1.0;
-            
-            if (skills.lucky) {
-                factors.push({ name: 'Skill Tree (Lucky)', multiplier: 1.15, active: true, icon: '🌳' });
-                totalMultiplier += 0.15;
-            } else {
-                factors.push({ name: 'Skill Tree (Lucky)', multiplier: 1.15, active: false, icon: '🌳' });
-            }
-            
-            if (gamepass.vip1) {
-                factors.push({ name: 'VIP 1', multiplier: 1.25, active: true, icon: '👑' });
-                totalMultiplier += 0.25;
-            } else {
-                factors.push({ name: 'VIP 1', multiplier: 1.25, active: false, icon: '👑' });
-            }
-
-            // Generate factors HTML
-            let factorsHTML = '';
-            factors.forEach(factor => {
-                const statusClass = factor.active ? 'text-green-400' : 'text-slate-500';
-                const checkIcon = factor.active ? '✅' : '❌';
-                factorsHTML += `
-                    <div class="bg-slate-800/50 rounded-2xl p-4 border border-slate-700">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <span class="text-2xl">${factor.icon}</span>
-                                <div>
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-lg font-black ${statusClass}">${checkIcon}</span>
-                                        <span class="text-sm font-black ${statusClass}">${factor.name}</span>
-                                    </div>
-                                    <p class="text-xs text-slate-400 mt-1">Nhân may mắn: x${factor.multiplier.toFixed(2)}</p>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <span class="text-lg font-black ${statusClass}">x${factor.multiplier.toFixed(2)}</span>
-                                <p class="text-xs ${statusClass}">${factor.active ? 'Đang kích hoạt' : 'Chưa kích hoạt'}</p>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-
-            factorsList.innerHTML = factorsHTML;
-            totalDisplay.innerText = `x${totalMultiplier.toFixed(2)}`;
-        };
-
+        
         window.handleAutoSellToggle = (checked) => {
             autoSellSettings.enabled = checked;
             showNotif(checked ? "ĐÃ BẬT TỰ ĐỘNG BÁN" : "ĐÃ TẮT TỰ ĐỘNG BÁN", checked ? "🤖" : "🛑");
@@ -1839,17 +2345,372 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
         };
 
         const updateShopUI = () => {
-            ['autoRoll', 'lucky', 'speedX2', 'autoSell', 'x2Sell'].forEach(key => {
+            ['autoRoll', 'speed1', 'speed2', 'speed3', 'speed4', 'speed5', 'economy1', 'economy2', 'economy3', 'economy4', 'economy5', 'autoSell', 'x2Sell'].forEach(key => {
                 const btn = document.getElementById(`buy-${key}`);
                 if (btn && skills[key]) {
                     btn.innerText = "ĐÃ SỞ HỮU";
                     btn.disabled = true;
-                    btn.className = "px-6 py-2 bg-slate-800 text-slate-500 font-black rounded-xl text-xs uppercase";
+                    btn.className = "w-full bg-slate-700 text-slate-400 font-black py-4 rounded-xl uppercase text-xs cursor-not-allowed";
                 }
             });
         };
 
-        const PACK_COOLDOWNS = { mythicCombo: 30 * 60 * 1000, godlySingle: 60 * 60 * 1000 };
+        // Inventory tab switching function
+        window.switchInventoryTab = (tab) => {
+            currentInventoryTab = tab;
+            
+            // Update tab button styles
+            const elementalTab = document.getElementById('tab-elemental');
+            const itemsTab = document.getElementById('tab-items');
+            
+            if (tab === 'elemental') {
+                elementalTab.className = 'px-4 py-2 bg-yellow-500 text-slate-950 font-black rounded-lg text-sm uppercase transition-all press-effect';
+                itemsTab.className = 'px-4 py-2 bg-slate-700 text-slate-300 font-black rounded-lg text-sm uppercase transition-all press-effect';
+            } else {
+                elementalTab.className = 'px-4 py-2 bg-slate-700 text-slate-300 font-black rounded-lg text-sm uppercase transition-all press-effect';
+                itemsTab.className = 'px-4 py-2 bg-yellow-500 text-slate-950 font-black rounded-lg text-sm uppercase transition-all press-effect';
+            }
+            
+            // Re-render inventory with new filter
+            renderInventory();
+        };
+
+        // Potion system functions
+        const useLuckyPotion = (potionId) => {
+            const potionIndex = inventory.findIndex(item => item.id === potionId && item.type === 'consumable');
+            if (potionIndex === -1) return;
+            
+            const potion = inventory[potionIndex];
+            
+            // Remove potion from inventory
+            if (potion.count > 1) {
+                potion.count--;
+            } else {
+                inventory.splice(potionIndex, 1);
+            }
+            
+            // Add potion effect (5 minutes = 300000 ms)
+            const endTime = Date.now() + 300000;
+            activePotions.push({ id: potionId, endTime: endTime });
+            
+            // Update potion luck bonus
+            updatePotionLuckBonus();
+            
+            // Show notification
+            showNotif("Đã dùng Lucky Potion! +50% may mắn trong 5 phút", "🧪");
+            
+            // Update UI
+            renderInventory();
+            updateStats();
+            saveToLocal();
+        };
+
+        const updatePotionLuckBonus = () => {
+            const now = Date.now();
+            
+            // Remove expired potions
+            activePotions = activePotions.filter(potion => potion.endTime > now);
+            
+            // Calculate bonus (each potion gives 1.0 = x2 luck)
+            potionLuckBonus = activePotions.length * 1.0;
+            
+            // Update luck display
+            updateLuckDisplay();
+        };
+
+        const getPotionTimeRemaining = () => {
+            if (activePotions.length === 0) return 0;
+            
+            const now = Date.now();
+            const latestEnd = Math.max(...activePotions.map(p => p.endTime));
+            return Math.max(0, latestEnd - now);
+        };
+
+        const formatTimeRemaining = (ms) => {
+            if (ms <= 0) return '0:00';
+            const minutes = Math.floor(ms / 60000);
+            const seconds = Math.floor((ms % 60000) / 1000);
+            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        };
+
+        // Shop system functions
+        window.toggleShop = (show) => {
+            document.getElementById('shop-modal').classList.toggle('hidden', !show);
+            if(show) {
+                renderShop();
+            }
+        };
+
+        window.toggleSkillTree = (show) => {
+            document.getElementById('skill-modal').classList.toggle('hidden', !show);
+            if(show) {
+                renderSkillTree();
+            }
+        };
+
+        // Shop tabs removed - now using category layout
+
+        const restockMerchant = () => {
+            merchantStock = [];
+            
+            // Always add Lucky Potion
+            merchantStock.push({
+                id: Date.now() + Math.random().toString(36).substr(2, 5) + 'potion',
+                name: 'Lucky Potion',
+                icon: '🧪',
+                type: 'consumable',
+                rarity: 'RARE',
+                price: 50000,
+                description: 'Tăng gấp đôi luck trong 10 phút',
+                outOfStock: false
+            });
+            
+            // Add 2-4 random elements from ELEMENT_POOL (excluding common)
+            const elementChoices = ELEMENT_POOL.filter(el => el.rarity !== 'COMMON');
+            const elementCount = Math.floor(Math.random() * 3) + 2; // 2-4 elements
+            
+            for (let i = 0; i < elementCount; i++) {
+                const randomElement = elementChoices[Math.floor(Math.random() * elementChoices.length)];
+                merchantStock.push({
+                    id: Date.now() + Math.random().toString(36).substr(2, 5) + 'element' + i,
+                    name: randomElement.name,
+                    icon: randomElement.icon,
+                    rarity: randomElement.rarity,
+                    price: randomElement.price * 2, // 2x price in shop
+                    description: `Nguyên tố ${randomElement.rarity} từ cửa hàng`,
+                    merchantItem: true,
+                    outOfStock: false
+                });
+            }
+            
+            // Add 1-2 additional items
+            const additionalItems = [
+                { name: 'Bùa May Mắn', icon: '🔮', rarity: 'RARE', price: 75000, description: 'Tăng 15% luck trong 5 phút' },
+                { name: 'Hộp Quà Bí Mật', icon: '🎁', rarity: 'EPIC', price: 150000, description: 'Chứa 1-3 vật phẩm ngẫu nhiên' },
+                { name: 'Vé Quay VIP', icon: '🎟️', rarity: 'LEGENDARY', price: 300000, description: 'Quay miễn phí 1 lần với luck x2' }
+            ];
+            
+            const extraCount = Math.floor(Math.random() * 2) + 1; // 1-2
+            for (let i = 0; i < extraCount; i++) {
+                const randomItem = additionalItems[Math.floor(Math.random() * additionalItems.length)];
+                merchantStock.push({
+                    id: Date.now() + Math.random().toString(36).substr(2, 5) + 'extra' + i,
+                    ...randomItem,
+                    outOfStock: false
+                });
+            }
+            
+            // Set next restock time (15 minutes)
+            shopRestockTime = Date.now() + (15 * 60 * 1000);
+        };
+
+        const updateShopRestockTimer = () => {
+            const now = Date.now();
+            const timeUntilRestock = Math.max(0, shopRestockTime - now);
+            
+            if (timeUntilRestock > 0) {
+                const restockElement = document.getElementById('shop-restock-text');
+                if (restockElement) {
+                    restockElement.innerText = `Restock trong: ${formatTimeRemaining(timeUntilRestock)}`;
+                }
+            } else if (merchantStock.length === 0 || now > shopRestockTime) {
+                restockMerchant();
+                renderShop();
+            }
+        };
+
+        const renderShop = () => {
+            // Render merchant items
+            const merchantContainer = document.getElementById('merchant-items');
+            merchantContainer.innerHTML = '';
+            
+            if (merchantStock.length === 0) {
+                merchantContainer.innerHTML = '<div class="col-span-full text-center text-slate-500 font-black text-sm p-8">Hết hàng! Chờ restock...</div>';
+            } else {
+                merchantStock.forEach(item => {
+                    const card = document.createElement('div');
+                    const isOutOfStock = item.outOfStock;
+                    
+                    // Apply different styling for out of stock items
+                    if (isOutOfStock) {
+                        card.className = 'shop-item disabled';
+                    } else {
+                        card.className = 'shop-item';
+                    }
+                    card.style.borderColor = (RARITIES[item.rarity]?.color || '#334155') + '33';
+                    
+                    if (!isOutOfStock) {
+                        card.onclick = () => {
+                            if (balance >= item.price) {
+                                showPurchaseConfirm(item, 'merchant');
+                            }
+                        };
+                    }
+                    
+                    // Count items of the same type in stock (excluding out of stock items)
+                    const itemCount = merchantStock.filter(stockItem => 
+                        stockItem.name === item.name && !stockItem.outOfStock
+                    ).length;
+                    
+                    card.innerHTML = `
+                        <div class="shop-item-icon">${item.icon}</div>
+                        <div class="shop-item-rarity ${getRarityTextClass(item.rarity)}" style="${getRarityStyle(item.rarity)}">${item.rarity}</div>
+                        <div class="shop-item-name">${item.name}</div>
+                        <div class="shop-item-description">${item.description}</div>
+                        <div class="shop-item-price">${item.price.toLocaleString()}$</div>
+                        <div class="text-[10px] ${isOutOfStock ? 'text-red-400' : 'text-yellow-400'} font-bold mb-2">
+                            ${isOutOfStock ? 'HẾT HÀNG' : `Còn: ${itemCount}`}
+                        </div>
+                        <button class="shop-item-button" ${isOutOfStock || balance < item.price ? 'disabled' : ''}>
+                            ${isOutOfStock ? 'HẾT HÀNG' : 'MUA NGAY'}
+                        </button>
+                    `;
+                    
+                    merchantContainer.appendChild(card);
+                });
+            }
+            
+            // Render special packs
+            const specialContainer = document.getElementById('special-items');
+            specialContainer.innerHTML = '';
+            
+            const specialPacks = [
+                {
+                    id: 'summer-limited',
+                    name: 'Summer 2026 Limited',
+                    icon: '🍍',
+                    price: 50000000,
+                    description: 'Exclusive Limited Edition Item'
+                }
+            ];
+            
+            specialPacks.forEach(pack => {
+                const card = document.createElement('div');
+                card.className = `shop-item ${balance < pack.price ? 'disabled' : ''} ${getVFXClass(pack.name)}`;
+                card.style.borderColor = '#eab308';
+                
+                const now = Date.now();
+                const lastBuy = lastPackBuyTimes[pack.id] || 0;
+                const waitTime = PACK_COOLDOWNS[pack.id] || 0;
+                const elapsed = now - lastBuy;
+                const canBuy = elapsed >= waitTime && balance >= pack.price;
+                
+                card.onclick = () => {
+                    if (canBuy) {
+                        showPurchaseConfirm(pack, 'special');
+                    }
+                };
+                
+                card.innerHTML = `
+                    <div class="shop-item-icon">${pack.icon}</div>
+                    <div class="shop-item-rarity text-yellow-500">SPECIAL</div>
+                    <div class="shop-item-name">${pack.name}</div>
+                    <div class="shop-item-description">${pack.description}</div>
+                    <div class="shop-item-price">${pack.price.toLocaleString()}$</div>
+                    ${!canBuy ? `<button class="shop-item-button" disabled>${balance < pack.price ? 'Không đủ tiền' : 'Cooldown'}</button>` : '<button class="shop-item-button">MUA NGAY</button>'}
+                `;
+                
+                specialContainer.appendChild(card);
+            });
+        };
+
+        let currentPurchaseItem = null;
+        let currentPurchaseType = null;
+
+        const showPurchaseConfirm = (item, type) => {
+            currentPurchaseItem = item;
+            currentPurchaseType = type;
+            
+            document.getElementById('purchase-icon').innerText = item.icon;
+            document.getElementById('purchase-item-name').innerText = item.name;
+            document.getElementById('purchase-item-desc').innerText = item.description;
+            document.getElementById('purchase-price').innerText = item.price.toLocaleString() + '$';
+            
+            const confirmBtn = document.getElementById('btn-confirm-purchase');
+            confirmBtn.onclick = () => confirmPurchase();
+            
+            document.getElementById('purchase-confirm-modal').classList.remove('hidden');
+        };
+
+        const closePurchaseConfirm = () => {
+            document.getElementById('purchase-confirm-modal').classList.add('hidden');
+            currentPurchaseItem = null;
+            currentPurchaseType = null;
+        };
+
+        const confirmPurchase = () => {
+            if (!currentPurchaseItem || !currentPurchaseType) return;
+            
+            if (currentPurchaseType === 'merchant') {
+                buyFromMerchant(currentPurchaseItem);
+            } else if (currentPurchaseType === 'special') {
+                buySpecialPack(currentPurchaseItem.id, currentPurchaseItem.price, currentPurchaseItem.name);
+            }
+            
+            closePurchaseConfirm();
+        };
+
+        const buyFromMerchant = (item) => {
+            if (balance < item.price) {
+                showNotif("Cần " + item.price.toLocaleString() + "$", "❌");
+                return;
+            }
+            
+            // Mark as out of stock instead of removing
+            const index = merchantStock.findIndex(stockItem => stockItem.id === item.id);
+            if (index !== -1) {
+                merchantStock[index].outOfStock = true;
+            }
+            
+            // Add to inventory
+            const newItem = {...item};
+            delete newItem.merchantItem;
+            newItem.id = Date.now() + Math.random().toString(36).substr(2, 5);
+            
+            const existingPotion = inventory.find(invItem => invItem.name === newItem.name && invItem.type === 'consumable');
+            if (existingPotion) {
+                existingPotion.count++;
+            } else {
+                inventory.push(newItem);
+            }
+            
+            balance -= item.price;
+            showNotif(`Mua ${item.name} thành công!`, "🛒");
+            
+            updateStats();
+            renderShop();
+            saveToLocal();
+        };
+
+        const buySpecialPack = (packId, price, packName) => {
+            if (balance < price) {
+                showNotif("Cần " + price.toLocaleString() + "$", "❌");
+                return;
+            }
+            
+            if (packId === 'summer-limited') {
+                // Add Summer Limited item to inventory
+                const summerItem = {
+                    ...LIMITED_ELEMENTS[0], // Summer2026 Limited
+                    count: 1,
+                    id: Date.now().toString(36) + Math.random().toString(36).substr(2),
+                    date: new Date().toLocaleDateString('vi-VN')
+                };
+                
+                inventory.push(summerItem);
+                balance -= price;
+                lastPackBuyTimes[packId] = Date.now();
+                
+                showNotif(`Mua ${packName} thành công!`, "🍍");
+                
+                updateStats();
+                renderShop();
+                renderInventory();
+                saveToLocal();
+            }
+        };
+
+        const PACK_COOLDOWNS = { 'summer-limited': 0 }; // No cooldown for summer limited
 
         const updatePackButtonStates = () => {
             const now = Date.now();
@@ -1895,6 +2756,7 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
         };
 
         setInterval(updatePackButtonStates, 1000);
+        setInterval(updateShopRestockTimer, 1000);
 
         window.adminGiveAll = () => {
             ELEMENT_POOL.forEach(el => {
@@ -1946,6 +2808,42 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
             input.value = '';
         };
 
+        window.adminSetLuck = () => {
+            const input = document.getElementById('admin-luck-input');
+            const luckMultiplier = parseFloat(input.value);
+            if (isNaN(luckMultiplier) || luckMultiplier < 0) {
+                showNotif("Luck phải >= 0!", "⚠️");
+                return;
+            }
+            
+            // Store admin luck bonus as direct multiplier
+            window.adminLuckBonus = luckMultiplier;
+            
+            // Update display
+            const currentLuckElement = document.getElementById('admin-current-luck');
+            if (currentLuckElement) {
+                currentLuckElement.innerText = luckMultiplier.toFixed(1);
+            }
+            
+            // Update the main luck calculation and UI
+            updateLuckDisplay();
+            saveToLocal();
+            showNotif(`Luck đã đặt thành x${luckMultiplier.toFixed(1)}`, "🍀");
+        };
+
+        // Update calculateLuckMultiplier to include admin bonus
+        const originalCalculateLuckMultiplier = calculateLuckMultiplier;
+        window.calculateLuckMultiplier = () => {
+            let multiplier = originalCalculateLuckMultiplier();
+            
+            // Add admin luck bonus if set (direct multiplier, not percentage)
+            if (window.adminLuckBonus) {
+                multiplier += window.adminLuckBonus;
+            }
+            
+            return multiplier;
+        };
+
         window.adminResetAll = () => {
             if (confirm("BẠN CÓ CHẮC MUỐN RESET TOÀN BỘ DỮ LIỆU? HÀNH ĐỘNG NÀY KHÔNG THỂ HOÀN TÁC!")) {
                 // Reset all game data
@@ -1953,7 +2851,7 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
                 balance = 0;
                 tdWins = 0;
                 currentPage = 1;
-                skills = { autoRoll: false, lucky: false, speedX2: false, autoSell: false, x2Sell: false };
+                skills = { autoRoll: false, skillTree: false, speed1: false, speed2: false, speed3: false, speed4: false, speed5: false, economy1: false, economy2: false, economy3: false, economy4: false, economy5: false, autoSell: false, x2Sell: false };
                 gamepass = { vip1: false };
                 autoSellSettings = { enabled: false, filters: [] };
                 usedCodes = [];
@@ -1966,7 +2864,7 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
                 currentPopup = null;
                 
                 // Clear local storage
-                localStorage.removeItem('legacyCollectionSave');
+                localStorage.removeItem('legacy_collection_save_v3');
                 
                 // Update UI
                 updateStats();
@@ -2298,20 +3196,41 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
             if(isRolling) return;
             isRolling = true;
             document.getElementById('btn-roll').disabled = true;
-
-            // Use dynamic luck calculation
-            const luckyFactor = 1.0 / currentLuckMultiplier; // Inverse: higher luck = lower weight for common items
-
-            const modifiedPool = ELEMENT_POOL.map(el => ({...el, currentWeight: (['GODLY', 'MYTHIC', 'LEGENDARY', 'MYSTIC', 'ULTIMATE'].includes(el.rarity)) ? el.weight : el.weight * luckyFactor }));
-            const totalWeight = modifiedPool.reduce((acc, el) => acc + el.currentWeight, 0);
             
-            let randomNum = Math.random() * totalWeight;
-            let selected = modifiedPool[modifiedPool.length - 1];
-            for (const el of modifiedPool) { 
-                if (randomNum < el.currentWeight) { selected = el; break; } 
-                randomNum -= el.currentWeight; 
+            // Increment total rolls counter
+            totalRolls++;
+            
+            // Check for lucky potion drop (1 in 100 chance)
+            if (Math.random() < 0.01) { // 1% chance
+                const luckyPotion = {
+                    id: Date.now() + Math.random().toString(36).substr(2, 5),
+                    name: 'Lucky Potion',
+                    icon: '🧪',
+                    type: 'consumable',
+                    rarity: 'RARE',
+                    price: 50000,
+                    count: 1,
+                    timestamp: new Date().toISOString(),
+                    description: 'x2 may mắn trong 5 phút'
+                };
+                
+                // Add lucky potion to inventory
+                const existingPotion = inventory.find(item => item.name === 'Lucky Potion' && item.type === 'consumable');
+                if (existingPotion) {
+                    existingPotion.count++;
+                } else {
+                    inventory.push(luckyPotion);
+                }
+                
+                // Show notification for lucky potion drop
+                setTimeout(() => {
+                    showNotif("🧪 Lucky Potion rơi ra! (1/100)", "✨");
+                    renderInventory();
+                    saveToLocal();
+                }, 2000);
             }
             
+            const selected = rollFromPool(currentLuckMultiplier);
             startRollAnimation(selected);
         };
 
@@ -2333,12 +3252,13 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
             card.style.borderColor = '#334155';
             document.getElementById('btn-congrats-close').classList.add('hidden');
 
-            let duration = skills.speedX2 ? 900 : 1800;
-            let intervalTime = skills.speedX2 ? 120 : 200;
+            const speedMultiplier = calculateSpeedMultiplier();
+            let duration = 1800 / speedMultiplier;
+            let intervalTime = 200 / speedMultiplier;
             let elapsed = 0;
 
             const rollInterval = setInterval(() => {
-                const randomEl = ELEMENT_POOL[Math.floor(Math.random() * ELEMENT_POOL.length)];
+                const randomEl = rollFromPool(); // Preview dùng luck=1 để không bias
                 const rarityColor = RARITIES[randomEl.rarity]?.color || '#94a3b8';
                 
                 iconEl.innerText = randomEl.icon;
@@ -2358,6 +3278,8 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
         };
 
         const finishRoll = (selected) => {
+            const speedMultiplier = calculateSpeedMultiplier();
+            
             // Ẩn nút tiếp tục nếu auto-roll đang bật
             if (isAutoOn) {
                 document.getElementById('btn-congrats-close').classList.add('hidden');
@@ -2371,11 +3293,12 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
             }
 
             if (autoSellSettings.enabled && autoSellSettings.filters.includes(selected.rarity)) {
-                let p = selected.price; if(skills.x2Sell) p = Math.floor(p * 1.05); balance += p;
+                const economyMultiplier = calculateEconomyMultiplier();
+                let p = Math.floor(selected.price * economyMultiplier); balance += p;
                 updateStats(); saveToLocal();
                 
                 showCongratsDisplay(selected, false, true); 
-                const closeDelay = skills.speedX2 ? 600 : 1000;
+                const closeDelay = 600 / speedMultiplier;
                 setTimeout(() => { 
                     if(!document.getElementById('congrats-overlay').classList.contains('hidden')) {
                         closeCongrats();
@@ -2407,7 +3330,7 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
                 updateStats(); showCongratsDisplay(rolledItem, isDuplicate, false); saveToLocal();
                 
                 if (isAutoOn) { 
-                    const closeDelay = skills.speedX2 ? 700 : 1200;
+                    const closeDelay = 700 / speedMultiplier;
                     setTimeout(() => { 
                         if(!document.getElementById('congrats-overlay').classList.contains('hidden')) {
                             closeCongrats();
@@ -2432,8 +3355,14 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
             document.getElementById('congrats-name').style.color = item.rarity === 'ULTIMATE' ? 'transparent' : rarityData.color;
             document.getElementById('congrats-price').innerText = (item.displayPrice || item.price.toLocaleString() + '$');
             
+            // Update drop chance display with comma formatting
+            const dropChance = calculateDropRate(item.name);
+            const formattedChance = dropChance.toLocaleString('en-US');
+            document.getElementById('congrats-dropchance').textContent = `1 in ${formattedChance}`;
+            
             if (isAutoSold) {
-                const sellPrice = skills.x2Sell ? Math.floor(item.price * 1.05) : item.price;
+                const economyMultiplier = calculateEconomyMultiplier();
+                const sellPrice = Math.floor(item.price * economyMultiplier);
                 statusText.innerText = `ĐÃ BÁN TỰ ĐỘNG (+${sellPrice.toLocaleString()}$)`; statusText.classList.remove('hidden'); statusText.classList.add('text-red-400');
                 // Also update the price display to show the actual sell price
                 document.getElementById('congrats-price').innerText = sellPrice.toLocaleString() + '$';
@@ -2566,7 +3495,7 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
             const idx = inventory.findIndex(i => i.id === currentSelectedItem.id);
             if (idx !== -1) {
                 const item = inventory[idx];
-                const multi = skills.x2Sell ? 1.05 : 1.0; // 5% bonus instead of 100%
+                const multi = calculateEconomyMultiplier(); // Use new economy multiplier system
                 let sellAmount = 0;
                 
                 if (mode === 1) {
@@ -2591,15 +3520,22 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
             }
         };
 
-        window.togglePackShop = (show) => document.getElementById('pack-shop-modal').classList.toggle('hidden', !show);
-        
         const getGodlyPackItem = () => {
-            const godlyWeights = { "Quỷ": 0.00001, "Tinh Tú": 0.0001, "Sáng Thế": 0.1, "Vĩnh Hằng": 30.0, "Hỗn Mang": 70.0 };
-            const godlys = ELEMENT_POOL.filter(e => e.rarity === 'GODLY');
-            const totalWeight = Object.values(godlyWeights).reduce((a, b) => a + b, 0);
-            let rand = Math.random() * totalWeight, selectedName = "Hỗn Mang"; 
-            for (const [name, weight] of Object.entries(godlyWeights)) { if (rand < weight) { selectedName = name; break; } rand -= weight; }
-            return godlys.find(e => e.name === selectedName);
+            // Dùng Sol's RNG weighted system nhất quán, chỉ filter pool GODLY
+            const godlyPool = ELEMENT_POOL.filter(e => e.rarity === 'GODLY');
+            // Tính weight trong pool GODLY (hiếm hơn = weight thấp hơn = đúng với chance cao hơn)
+            let totalWeight = 0;
+            const weights = godlyPool.map(item => {
+                const w = 1 / item.chance;
+                totalWeight += w;
+                return w;
+            });
+            let r = Math.random() * totalWeight;
+            for (let i = 0; i < godlyPool.length; i++) {
+                r -= weights[i];
+                if (r <= 0) return godlyPool[i];
+            }
+            return godlyPool[godlyPool.length - 1];
         };
 
         window.buyPack = (type, price, openImmediately) => {
@@ -2674,6 +3610,25 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
             balance -= price; skills[skillKey] = true; updateStats(); saveToLocal(); showNotif("MUA THÀNH CÔNG!", "✅");
         };
 
+        // Check if a node is within one step of an unlocked node
+        const isNodeWithinReach = (node, categoryNodes) => {
+            // If node is already unlocked, it's within reach
+            if (skills[node.id]) return true;
+            
+            // If node has no requirements, it's within reach (first node)
+            if (!node.requires) return true;
+            
+            // Check if the required node is unlocked
+            if (skills[node.requires]) return true;
+            
+            // Check if any node that requires this node is unlocked (reverse check)
+            const hasUnlockedDependent = categoryNodes.some(n => 
+                n.requires === node.id && skills[n.id]
+            );
+            
+            return hasUnlockedDependent;
+        };
+
         // Skill Tree Functions
         const renderSkillTree = () => {
             Object.keys(SKILL_TREE_DATA).forEach(categoryKey => {
@@ -2693,20 +3648,30 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
                     const isUnlocked = skills[node.id];
                     const isAvailable = !isUnlocked && (!node.requires || skills[node.requires]);
                     const isLocked = !isUnlocked && node.requires && !skills[node.requires];
+                    const isWithinReach = isNodeWithinReach(node, category.nodes);
 
                     if (isUnlocked) {
                         nodeElement.classList.add('unlocked');
                     } else if (isAvailable) {
                         nodeElement.classList.add('available');
-                    } else {
+                    } else if (isWithinReach) {
                         nodeElement.classList.add('locked');
+                    } else {
+                        nodeElement.classList.add('locked', 'out-of-reach');
                     }
 
-                    // Node content
-                    nodeElement.innerHTML = `
-                        <div class="skill-node-icon">${node.icon}</div>
-                        <div class="skill-node-level">Lv.${node.level}</div>
-                    `;
+                    // Node content - hide info for out-of-reach nodes
+                    if (isWithinReach) {
+                        nodeElement.innerHTML = `
+                            <div class="skill-node-icon">${node.icon}</div>
+                            <div class="skill-node-level">Lv.${node.level}</div>
+                        `;
+                    } else {
+                        nodeElement.innerHTML = `
+                            <div class="skill-node-icon">?</div>
+                            <div class="skill-node-level">???</div>
+                        `;
+                    }
 
                     // Create connection line (except for first node)
                     if (index > 0) {
@@ -2719,11 +3684,16 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
                         container.appendChild(connection);
                     }
 
-                    // Add click event
-                    nodeElement.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        showSkillPopup(node, nodeElement);
-                    });
+                    // Add click event - only for nodes within reach
+                    if (isWithinReach) {
+                        nodeElement.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            showSkillPopup(node, nodeElement);
+                        });
+                    } else {
+                        nodeElement.style.cursor = 'not-allowed';
+                        nodeElement.style.pointerEvents = 'none';
+                    }
 
                     container.appendChild(nodeElement);
                 });
@@ -2731,8 +3701,12 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
         };
 
         const showSkillPopup = (node, nodeElement) => {
-            // Hide existing popup
+            // Hide existing popup and remove previous popup-active class
             if (currentPopup) {
+                const previousNode = currentPopup.parentElement;
+                if (previousNode) {
+                    previousNode.classList.remove('popup-active');
+                }
                 currentPopup.remove();
             }
 
@@ -2762,8 +3736,18 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
                 ${buttonHTML}
             `;
 
-            // Position popup
-            nodeElement.appendChild(popup);
+            // Calculate popup position using getBoundingClientRect
+            const nodeRect = nodeElement.getBoundingClientRect();
+            popup.style.position = 'fixed';
+            popup.style.top = `${nodeRect.top + nodeRect.height / 2}px`;
+            popup.style.left = `${nodeRect.right + 4}px`;
+            popup.style.transform = 'translateY(-50%)';
+            
+            // Position popup in document body
+            document.body.appendChild(popup);
+            
+            // Add popup-active class to node
+            nodeElement.classList.add('popup-active');
             
             // Show popup with animation
             setTimeout(() => popup.classList.add('show'), 10);
@@ -2771,9 +3755,10 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
 
             // Close popup when clicking outside
             const closePopup = (e) => {
-                if (!nodeElement.contains(e.target)) {
+                if (!popup.contains(e.target) && !nodeElement.contains(e.target)) {
                     popup.remove();
                     currentPopup = null;
+                    nodeElement.classList.remove('popup-active');
                     document.removeEventListener('click', closePopup);
                 }
             };
@@ -2825,27 +3810,41 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
             }
         };
 
-        // Update the existing toggleShop function to render skill tree
-        window.toggleShop = (show) => {
-            document.getElementById('shop-modal').classList.toggle('hidden', !show);
-            if (show) {
-                setTimeout(() => renderSkillTree(), 100);
-            }
-        };
-
         window.handleRedeem = () => {
             const input = document.getElementById('input-redeem'); const code = input.value.trim().toUpperCase();
-            if (code === "ADAD") { document.getElementById('admin-modal').classList.remove('hidden'); showNotif("ADMIN AUTHORIZED", "🔒"); input.value = ""; return; }
+            if (code === "ADAD") { 
+                document.getElementById('admin-modal').classList.remove('hidden'); 
+                showNotif("ADMIN AUTHORIZED", "🔒"); 
+                input.value = ""; 
+                
+                // Update current luck display
+                const currentLuckElement = document.getElementById('admin-current-luck');
+                if (currentLuckElement) {
+                    const currentLuckMultiplier = window.adminLuckBonus || 0;
+                    currentLuckElement.innerText = currentLuckMultiplier.toFixed(1);
+                }
+                
+                // Update admin luck input
+                const adminLuckInput = document.getElementById('admin-luck-input');
+                if (adminLuckInput) {
+                    adminLuckInput.value = window.adminLuckBonus || 0;
+                }
+                
+                return; 
+            }
             if (usedCodes.includes(code)) { showNotif("Mã đã dùng!", "❌"); return; }
             if (code === "SUMMER2026") { balance += 1500000; usedCodes.push(code); showNotif("+1.5M", "💸"); }
             else { showNotif("Mã không hợp lệ!", "⚠️"); }
             updateStats(); saveToLocal(); input.value = "";
         };
 
-                window.toggleInventory = (show) => { 
+        window.toggleInventory = (show) => { 
             document.getElementById('inventory-modal').classList.toggle('hidden', !show); 
             if(show) { 
-                currentPage = 1; 
+                currentPage = 1;
+                // Cập nhật stats khi mở inventory
+                const totalItems = inventory.reduce((sum, item) => sum + (item.count || 1), 0);
+                document.getElementById('inventory-count-text').innerText = `${totalItems} VẬT PHẨM (${inventory.length} LOẠI)`;
                 renderInventory(); 
                 // Initialize previous balance for animations
                 const inventoryBalance = document.getElementById('inventory-balance');
@@ -2855,18 +3854,51 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
                 }
             } 
         };
-        window.toggleCollection = (show) => { document.getElementById('collection-modal').classList.toggle('hidden', !show); if(show) renderCollection(); };
-        window.changePage = (dir) => { const maxPage = 10; if(currentPage + dir >= 1 && currentPage + dir <= maxPage) { currentPage += dir; renderInventory(); } };
-        window.closeActionModal = () => document.getElementById('action-modal').classList.add('hidden');
+        window.toggleCollection = (show) => { 
+            document.getElementById('collection-modal').classList.toggle('hidden', !show); 
+            if(show) {
+                const uniqueOwned = new Set(inventory.map(i => i.name)).size;
+                const totalPoolCount = ELEMENT_POOL.length + LIMITED_ELEMENTS.length;
+                document.getElementById('collection-progress-text').innerText = `TIẾN ĐỘ: ${uniqueOwned}/${totalPoolCount}`;
+                renderCollection();
+            }
+        };
+                window.closeActionModal = () => document.getElementById('action-modal').classList.add('hidden');
         window.showItemCode = () => { document.getElementById('display-code').innerText = `#${Math.random().toString(36).substr(2, 5).toUpperCase()}`; document.getElementById('code-box').classList.remove('hidden'); };
 
         const renderInventory = () => {
             const grid = document.getElementById('inventory-grid'); grid.innerHTML = '';
-            document.getElementById('current-page-text').innerText = `Trang ${currentPage}`;
-            const sorted = [...inventory].sort((a,b) => (RARITIES[b.rarity]?.priority || 0) - (RARITIES[a.rarity]?.priority || 0));
-            sorted.slice((currentPage-1)*itemsPerPage, currentPage*itemsPerPage).forEach(item => {
+            
+            // Filter items based on current tab
+            const filteredItems = inventory.filter(item => {
+                if (currentInventoryTab === 'elemental') {
+                    return item.type !== 'consumable';
+                } else if (currentInventoryTab === 'items') {
+                    return item.type === 'consumable';
+                }
+                return true;
+            });
+            
+            const sorted = [...filteredItems].sort((a,b) => {
+                // First, sort by rarity priority (higher number = rarer)
+                const rarityA = RARITIES[a.rarity]?.priority || 0;
+                const rarityB = RARITIES[b.rarity]?.priority || 0;
+                
+                if (rarityA !== rarityB) {
+                    return rarityB - rarityA; // Higher rarity priority first
+                }
+                
+                // Same rarity: sort by chance (HIGHER chance number = rarer = comes first)
+                // e.g. "1 in 100000" (chance=100000) is rarer than "1 in 75000" (chance=75000)
+                const chanceA = calculateDropRate(a.name) || 0;
+                const chanceB = calculateDropRate(b.name) || 0;
+                
+                return chanceB - chanceA; // Higher chance value (rarer) comes first
+            });
+            
+            sorted.forEach(item => {
                 const card = document.createElement('div');
-                card.className = `relative card-shimmer bg-slate-900 border-2 p-3 rounded-2xl flex flex-col items-center text-center press-effect h-full min-h-[120px] ${getVFXClass(item.name)}`;
+                card.className = `relative card-shimmer bg-slate-900 border-2 p-3 rounded-2xl flex flex-col items-center text-center press-effect h-full min-h-[140px] ${getVFXClass(item.name)}`;
                 
                 if(!getVFXClass(item.name)) {
                     if (item.rarity === 'GODLY') card.classList.add('rarity-glow-godly');
@@ -2875,20 +3907,47 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
                 }
                 
                 card.onclick = () => {
-                    currentSelectedItem = item;
-                    document.getElementById('action-title').innerText = item.name;
-                    document.getElementById('action-icon').innerText = item.icon;
-                    document.getElementById('action-desc').innerText = `Loại: ${item.rarity}. x${item.count}. Giá: ${item.displayPrice || item.price.toLocaleString() + '$'}`;
-                    
-                    document.getElementById('btn-sell-one').classList.toggle('hidden', ((item.count || 1) <= 1) || item.isLimited);
-                    document.getElementById('btn-use-pack').classList.toggle('hidden', !item.isPack);
-                    document.getElementById('btn-sell-item').classList.toggle('hidden', !!item.isPack || !!item.isLimited);
-                    
-                    document.getElementById('btn-gen-code').classList.toggle('hidden', !!item.isLimited);
-                    document.getElementById('code-box').classList.add('hidden');
-                    document.getElementById('action-modal').classList.remove('hidden');
+                    if (item.type === 'consumable') {
+                        // Handle consumable usage
+                        useLuckyPotion(item.id);
+                    } else {
+                        // Handle regular items
+                        currentSelectedItem = item;
+                        document.getElementById('action-title').innerText = item.name;
+                        document.getElementById('action-icon').innerText = item.icon;
+                        document.getElementById('action-desc').innerText = `Loại: ${item.rarity}. x${item.count}. Giá: ${item.displayPrice || item.price.toLocaleString() + '$'}`;
+                        
+                        document.getElementById('btn-sell-one').classList.toggle('hidden', ((item.count || 1) <= 1) || item.isLimited);
+                        document.getElementById('btn-use-pack').classList.toggle('hidden', !item.isPack);
+                        document.getElementById('btn-sell-item').classList.toggle('hidden', !!item.isPack || !!item.isLimited);
+                        
+                        document.getElementById('btn-gen-code').classList.toggle('hidden', !!item.isLimited);
+                        document.getElementById('code-box').classList.add('hidden');
+                        document.getElementById('action-modal').classList.remove('hidden');
+                    }
                 };
-                card.innerHTML = `${item.count > 1 ? `<div class="stack-badge">x${item.count}</div>`:''}<div class="text-3xl mb-2 mt-1">${item.icon}</div><div class="rarity-tag mb-1 text-[8px] ${getRarityTextClass(item.rarity)}" style="${getRarityStyle(item.rarity)}">${item.rarity}</div><div class="text-[10px] font-black truncate w-full uppercase">${item.name}</div><div class="mt-auto text-[8px] text-green-500 font-bold">${item.displayPrice || item.price.toLocaleString() + '$'}</div>`;
+                
+                if (item.type === 'consumable') {
+                    // Render consumable items differently
+                    const timeRemaining = getPotionTimeRemaining();
+                    const timeText = timeRemaining > 0 ? formatTimeRemaining(timeRemaining) : '';
+                    
+                    card.innerHTML = `
+                        ${item.count > 1 ? `<div class="stack-badge">x${item.count}</div>`:''}
+                        <div class="text-3xl mb-2 mt-1">${item.icon}</div>
+                        <div class="rarity-tag mb-1 text-[8px] ${getRarityTextClass(item.rarity)}" style="${getRarityStyle(item.rarity)}">${item.rarity}</div>
+                        <div class="text-[10px] font-black truncate w-full uppercase">${item.name}</div>
+                        <div class="mt-auto text-[8px] text-purple-500 font-bold">${item.description}</div>
+                        ${timeText ? `<div class="mt-1 text-[8px] text-green-400 font-bold">⏰ ${timeText}</div>` : ''}
+                        <div class="mt-2 text-[8px] text-yellow-400 font-bold">CLICK TO USE</div>
+                    `;
+                } else {
+                    // Render regular items
+                    const dropChance = calculateDropRate(item.name);
+                    const formattedChance = dropChance.toLocaleString('en-US');
+                    card.innerHTML = `${item.count > 1 ? `<div class="stack-badge">x${item.count}</div>`:''}<div class="text-3xl mb-2 mt-1">${item.icon}</div><div class="rarity-tag mb-1 text-[8px] ${getRarityTextClass(item.rarity)}" style="${getRarityStyle(item.rarity)}">${item.rarity}</div><div class="text-[10px] font-black truncate w-full uppercase">${item.name}</div><div class="mt-auto text-[8px] text-green-500 font-bold">${item.displayPrice || item.price.toLocaleString() + '$'}</div><div class="mt-1 text-xs text-blue-500 font-medium">1 in ${formattedChance}</div>`;
+                }
+                
                 grid.appendChild(card);
             });
         };
@@ -2897,7 +3956,21 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
             const grid = document.getElementById('collection-grid'); grid.innerHTML = '';
             const owned = collectionTracking; // Sử dụng collectionTracking thay vì inventory
             
-            const categories = [{ title: "LEGACY ELEMENTS", pool: ELEMENT_POOL }, { title: "LIMITED ELEMENTAL", pool: LIMITED_ELEMENTS }];
+            // Sort ELEMENT_POOL by rarity and chance for consistent display
+            const sortedElementPool = [...ELEMENT_POOL].sort((a,b) => {
+                // First, sort by rarity priority (higher number = rarer)
+                const rarityA = RARITIES[a.rarity]?.priority || 0;
+                const rarityB = RARITIES[b.rarity]?.priority || 0;
+                
+                if (rarityA !== rarityB) {
+                    return rarityB - rarityA; // Higher rarity priority first
+                }
+                
+                // Same rarity: sort by chance (HIGHER chance number = rarer = comes first)
+                return b.chance - a.chance; // Higher chance value (rarer) comes first
+            });
+
+            const categories = [{ title: "LEGACY ELEMENTS", pool: sortedElementPool }, { title: "LIMITED ELEMENTAL", pool: LIMITED_ELEMENTS }];
             
             categories.forEach(cat => {
                 const title = document.createElement('h3'); title.className = "col-span-full text-[10px] font-black tracking-widest text-slate-500 uppercase mt-4 mb-2 pl-2"; title.innerText = cat.title; grid.appendChild(title);
@@ -2930,7 +4003,16 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
         ];
         let selectedTDItem = null, activeTowerToUpgrade = null;
 
-        window.openTD = () => { document.getElementById('td-modal').classList.remove('hidden'); tdCanvas = document.getElementById('td-canvas'); tdCtx = tdCanvas.getContext('2d'); tdActive = true; resetTDGame(); renderTDShop(); tdGameLoop = requestAnimationFrame(updateTDGame); };
+        window.openTD = () => { 
+            if (tdGameLoop) cancelAnimationFrame(tdGameLoop);
+            document.getElementById('td-modal').classList.remove('hidden'); 
+            tdCanvas = document.getElementById('td-canvas'); 
+            tdCtx = tdCanvas.getContext('2d'); 
+            tdActive = true; 
+            resetTDGame(); 
+            renderTDShop(); 
+            tdGameLoop = requestAnimationFrame(updateTDGame); 
+        };
         window.closeTD = () => { tdActive = false; cancelAnimationFrame(tdGameLoop); document.getElementById('td-modal').classList.add('hidden'); };
 
         const resetTDGame = () => {
@@ -3062,7 +4144,12 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
                     if (tdWave === 20) {
                         tdEnemies.push({ x: tdPathPoints[0].x * TD_CELL + TD_CELL/2, y: tdPathPoints[0].y * TD_CELL + TD_CELL/2, pathIdx: 0, hp: 5000000, maxHp: 5000000, speed: 0.4, reward: 100000, isBoss: true, freezeCooldown: 0, color: '#ef4444', radius: 25, isFinalBoss: true });
                     } else if (tdWave === 10) {
-                        let bossHp = inventory.some(i => i.rarity === 'GODLY' || i.rarity === 'MYTHIC' || i.rarity === 'LIMITED' || i.rarity === 'ULTIMATE') ? 500000 : 20000;
+                        // Tính HP boss dựa trên tier cao nhất player sở hữu (không tính pack)
+                        const ownedRarities = inventory.filter(i => !i.isPack).map(i => RARITIES[i.rarity]?.priority || 0);
+                        const maxPriority = ownedRarities.length > 0 ? Math.max(...ownedRarities) : 0;
+                        // Scaling theo priority: BASIC=1→10k, RARE=3→30k, MYSTIC=4→80k, LEGENDARY=5→150k, MYTHIC=6→300k, GODLY/ULTIMATE+=7→600k
+                        const bossHpTable = { 0: 5000, 1: 10000, 2: 20000, 3: 40000, 4: 80000, 5: 150000, 6: 300000, 7: 500000, 8: 500000, 9: 500000 };
+                        let bossHp = bossHpTable[Math.min(maxPriority, 9)] || 5000;
                         tdEnemies.push({ x: tdPathPoints[0].x * TD_CELL + TD_CELL/2, y: tdPathPoints[0].y * TD_CELL + TD_CELL/2, pathIdx: 0, hp: bossHp, maxHp: bossHp, speed: 0.6, reward: 5000, isBoss: true, freezeCooldown: 0, color: '#eab308', radius: 20 });
                     } else {
                         let baseHp = 20 + tdWave * 15 + Math.pow(tdWave, 2) * 5;
@@ -3102,7 +4189,13 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
                     if(dist < e.speed) { e.x = tx; e.y = ty; e.pathIdx++; } else { e.x += (dx/dist) * e.speed; e.y += (dy/dist) * e.speed; }
                 } else {
                     tdHp -= e.isBoss ? (e.isFinalBoss ? 100 : 50) : 5; tdEnemies.splice(i, 1); updateTDUI();
-                    if(tdHp <= 0) { alert("THÀNH ĐÃ BỊ PHÁ HỦY! GAME OVER."); closeTD(); return; }
+                    if(tdHp <= 0) { 
+                        tdActive = false; 
+                        cancelAnimationFrame(tdGameLoop);
+                        showNotif("THÀNH ĐÃ SỤP ĐỔ! GAME OVER", "💀");
+                        setTimeout(() => closeTD(), 1500);
+                        return; 
+                    }
                 }
             }
 
@@ -3275,6 +4368,13 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
                 tdWins = localData.tdWins || 0; 
                 lastTradeTime = localData.lastTradeTime || 0;
                 gamepass = localData.gamepass || { vip1: false };
+                totalRolls = localData.totalRolls || 0;
+                activePotions = localData.activePotions || [];
+                currentInventoryTab = localData.currentInventoryTab || 'elemental';
+                currentShopTab = localData.currentShopTab || 'merchant';
+                shopRestockTime = localData.shopRestockTime || 0;
+                merchantStock = localData.merchantStock || [];
+                window.adminLuckBonus = localData.adminLuckBonus || 0;
                                 // Tải collectionTracking từ localStorage (nếu có)
                 if(localData.collectionTracking) {
                     collectionTracking = new Set(localData.collectionTracking);
@@ -3300,6 +4400,14 @@ let currentLuckMultiplier = 1.0; // Track current luck multiplier
             }
 
             updateStats();
+            
+            // Initialize shop system
+            if (merchantStock.length === 0) {
+                restockMerchant();
+            } else if (shopRestockTime === 0) {
+                // Set initial restock time if not set
+                shopRestockTime = Date.now() + (15 * 60 * 1000);
+            }
             
             if(!document.getElementById('inventory-modal').classList.contains('hidden')) renderInventory();
 
