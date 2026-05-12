@@ -1060,6 +1060,21 @@
                         </div>
                         <div class="text-2xl">🍀</div>
                     </div>
+                    
+                    <!-- Lucky Potion Timer -->
+                    <div id="lucky-potion-timer" class="hidden bg-gradient-to-r from-green-600/20 to-emerald-600/20 border-2 border-green-500/50 p-3 rounded-2xl shadow-lg flex-shrink-0 relative overflow-hidden">
+                        <div class="absolute inset-0 bg-gradient-to-r from-green-500/10 to-emerald-500/10 animate-pulse"></div>
+                        <div class="relative z-10 flex items-center gap-3">
+                            <div class="text-2xl">🧪</div>
+                            <div class="flex-1">
+                                <p class="text-[8px] font-black text-green-400 uppercase tracking-widest mb-1">Lucky Potion</p>
+                                <p id="lucky-potion-countdown" class="text-sm font-black text-white">05:00</p>
+                            </div>
+                            <div class="text-xs font-bold text-green-400">
+                                <span id="lucky-potion-multiplier">x2</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="flex flex-col gap-3 w-full flex-shrink-0">
@@ -1176,6 +1191,12 @@
                             <button onclick="adminSetLuck()" class="bg-green-700 px-4 rounded-lg font-black text-[10px] uppercase">Set</button>
                         </div>
                         <p class="text-[8px] text-slate-600">Hiện tại: <span id="admin-current-luck">0</span>x</p>
+                        <div class="flex gap-1 mt-1">
+                            <button onclick="testLuckSystem(100)" class="bg-blue-700 px-2 py-1 rounded text-[8px] uppercase">Test x100</button>
+                            <button onclick="testLuckSystem(1000)" class="bg-purple-700 px-2 py-1 rounded text-[8px] uppercase">Test x1000</button>
+                            <button onclick="testLuckSystem(10000)" class="bg-red-700 px-2 py-1 rounded text-[8px] uppercase">Test x10000</button>
+                        </div>
+                        <div id="luck-test-results" class="text-[8px] text-yellow-400 mt-1 max-h-20 overflow-y-auto"></div>
                     </div>
                 </div>
                 <p class="mt-6 text-center text-[8px] text-slate-600 font-bold uppercase tracking-widest">DEV STUDIO ADMIN TOOLS</p>
@@ -1591,6 +1612,38 @@
             </div>
         </div>
 
+        <!-- LUCK POTION MODAL -->
+        <div id="luck-potion-modal" class="hidden fixed inset-0 z-50 modal-bg flex items-center justify-center p-6">
+        </div>
+
+        <!-- LUCKY POTION CONFIRMATION MODAL -->
+        <div id="lucky-potion-confirm-modal" class="hidden fixed inset-0 z-[65] modal-bg flex items-center justify-center p-6">
+            <div class="bg-slate-900 border-2 border-green-500 p-8 rounded-[2rem] max-w-sm w-full shadow-2xl text-center">
+                <div id="lucky-potion-icon" class="text-5xl mb-4">🧪</div>
+                <h2 class="text-xl font-black mb-2 uppercase">Xác Nhận Dùng</h2>
+                <p id="lucky-potion-name" class="text-slate-300 text-sm mb-2 font-bold">Lucky Potion</p>
+                <p id="lucky-potion-desc" class="text-slate-400 text-[10px] mb-4">Tăng gấp đôi luck trong 5 phút</p>
+                <div class="bg-slate-950/80 border border-slate-800 p-4 rounded-2xl mb-6">
+                    <p class="text-[10px] text-slate-500 font-black uppercase mb-1">Số lượng có</p>
+                    <p id="lucky-potion-count" class="text-2xl font-black text-green-400">1</p>
+                </div>
+                <div class="mb-4">
+                    <p class="text-[10px] text-slate-500 font-black uppercase mb-2">Số lượng muốn dùng:</p>
+                    <div class="flex gap-2 justify-center">
+                        <button onclick="setPotionUseCount(1)" class="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-lg transition-colors">1</button>
+                        <button onclick="setPotionUseCount(5)" class="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-lg transition-colors">5</button>
+                        <button onclick="setPotionUseCount(10)" class="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-lg transition-colors">10</button>
+                        <button onclick="setPotionUseCount('all')" class="px-3 py-2 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition-colors">Tất cả</button>
+                    </div>
+                    <p id="selected-use-count" class="text-sm text-green-400 font-bold mt-2">Sẽ dùng: 1</p>
+                </div>
+                <div class="flex flex-col gap-3">
+                    <button id="btn-confirm-use-potion" class="bg-green-600 hover:bg-green-500 text-white font-black py-4 rounded-xl transition-all press-effect uppercase text-xs">Dùng Ngay</button>
+                    <button onclick="closeLuckyPotionConfirm()" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition-all press-effect uppercase text-[10px]">Hủy</button>
+                </div>
+            </div>
+        </div>
+
         <!-- ROLL RESULT OVERLAY -->
         <div id="congrats-overlay" class="hidden fixed inset-0 z-50 modal-bg flex items-center justify-center p-6">
             <div id="congrats-card" class="bg-slate-900 p-8 rounded-[2.5rem] max-w-sm w-full text-center border-4 transform transition-all scale-50 opacity-0 duration-500 shadow-2xl relative overflow-hidden">
@@ -1666,8 +1719,9 @@
             { name: "Nước", rarity: "NATURAL", chance: 10, price: 3200, icon: "💧", color: "#3b82f6" },
 
             // BASIC: Nhóm xuất hiện thường xuyên nhất (Tỉ lệ cực thấp để nhường chỗ cho Đồng)
-            { name: "Đất", rarity: "BASIC", chance: 5, price: 800, icon: "🪨", color: "#78350f" },
-            { name: "Cát", rarity: "BASIC", chance: 3, price: 150, icon: "🏖️", color: "#fde047" },
+            { name: "Đất", rarity: "BASIC", chance: 4, price: 800, icon: "🪨", color: "#78350f" },
+            { name: "Sỏi", rarity: "BASIC", chance: 3, price: 500, icon: "🏜️", color: "#fde047" },
+            { name: "Cát", rarity: "BASIC", chance: 2, price: 150, icon: "🏖️", color: "#fde047" },
             { name: "Đồng", rarity: "BASIC", chance: 1, price: 50, icon: "🥉", color: "#b45309" }
         ];
         
@@ -2146,27 +2200,36 @@ let merchantStock = []; // Current merchant stock
         };
 
         // Hàm roll chính theo Independent Roll — dùng cho cả animation preview lẫn roll thật
-        // luckMultiplier: 1.0 = không luck, 1.35 = +35% luck, v.v.
+        // luckMultiplier: 1.0 = không luck, 1000 = x1000 luck, v.v.
         const rollFromPool = (luckMultiplier = 1.0) => {
+            // DEBUG: Log luck multiplier
+            console.log(`🍀 DEBUG: Rolling with luck multiplier: x${luckMultiplier}`);
+            
             // Sắp xếp elements theo chance giảm dần (rare nhất đứng đầu)
             const sortedElements = [...ELEMENT_POOL].sort((a, b) => b.chance - a.chance);
             
-            // Duyệt qua danh sách đã sắp xếp
+            // DEBUG: Log top 5 rarest items with their chances
+            console.log('🍀 DEBUG: Top 5 rarest items:');
+            sortedElements.slice(0, 5).forEach((el, i) => {
+                const chance = (luckMultiplier / el.chance * 100).toFixed(4);
+                console.log(`  ${i+1}. ${el.name} (${el.rarity}) - 1:${el.chance} -> ${(luckMultiplier/el.chance*100).toFixed(4)}% chance`);
+            });
+            
+            // ĐÚNG LOGIC: Roll từng item độc lập theo thứ tự từ rare nhất đến common nhất
+            // Item nào trúng đầu tiên sẽ được chọn
             for (const element of sortedElements) {
-                let adjustedChance = element.chance;
+                const rollResult = Math.random();
+                const elementChance = luckMultiplier / element.chance;
+                console.log(`🍀 DEBUG: Rolling ${element.name} - chance: ${elementChance.toFixed(6)} (${(elementChance*100).toFixed(4)}%) - roll: ${rollResult.toFixed(6)}`);
                 
-                // Áp dụng luck boost cho các rarity được chọn
-                if (luckMultiplier > 1.0 && LUCK_BOOSTED_RARITIES.has(element.rarity)) {
-                    adjustedChance = Math.max(1, Math.round(element.chance / luckMultiplier));
-                }
-                
-                // Kiểm tra independent roll
-                if (Math.random() < 1 / adjustedChance) {
+                if (rollResult < elementChance) {
+                    console.log(`🍀 DEBUG: SUCCESS! Selected ${element.name} (${element.rarity})`);
                     return element;
                 }
             }
             
             // Fallback - luôn trả về Đồng (chance: 1)
+            console.log('🍀 DEBUG: FALLBACK to Đồng');
             return ELEMENT_POOL.find(el => el.name === "Đồng") || ELEMENT_POOL[ELEMENT_POOL.length - 1];
         };
 
@@ -2199,14 +2262,20 @@ let merchantStock = []; // Current merchant stock
             // Gamepass luck bonus
             if (gamepass.vip1) multiplier += 0.25; // +25% from VIP 1
             
-            // Add potion luck bonus
-            multiplier += potionLuckBonus;
+            // Apply potion luck bonus (multiplicative)
+            if (potionLuckBonus > 0) {
+                multiplier *= 2.0; // Multiply by 2 when potions are active
+            }
             
             return multiplier;
         };
 
         const updateLuckDisplay = () => {
-            currentLuckMultiplier = calculateLuckMultiplier();
+            const calculatedMultiplier = window.calculateLuckMultiplier();
+            console.log(`🍀 DEBUG: updateLuckDisplay() - calculatedMultiplier: x${calculatedMultiplier}`);
+            currentLuckMultiplier = calculatedMultiplier;
+            console.log(`🍀 DEBUG: updateLuckDisplay() - currentLuckMultiplier set to: x${currentLuckMultiplier}`);
+            
             const luckElement = document.getElementById('stats-luck');
             if (luckElement) {
                 luckElement.innerText = `x${currentLuckMultiplier.toFixed(2)}`;
@@ -2376,33 +2445,146 @@ let merchantStock = []; // Current merchant stock
         };
 
         // Potion system functions
-        const useLuckyPotion = (potionId) => {
-            const potionIndex = inventory.findIndex(item => item.id === potionId && item.type === 'consumable');
-            if (potionIndex === -1) return;
+        let currentPotionToUse = null;
+        let selectedUseCount = 1;
+
+        const setPotionUseCount = (count) => {
+            if (!currentPotionToUse || !currentPotionToUse.count || currentPotionToUse.count <= 0) {
+                selectedUseCount = 1;
+                return;
+            }
+            
+            let newCount;
+            if (count === 'all') {
+                newCount = Math.max(1, currentPotionToUse.count);
+            } else {
+                newCount = Math.max(1, Math.min(count, currentPotionToUse.count));
+            }
+            
+            // Ensure we have a valid number
+            selectedUseCount = parseInt(newCount) || 1;
+            
+            // Update display
+            const displayElement = document.getElementById('selected-use-count');
+            if (displayElement) {
+                displayElement.innerText = `Sẽ dùng: ${selectedUseCount}`;
+            }
+            
+            // Update button text
+            const confirmBtn = document.getElementById('btn-confirm-use-potion');
+            if (confirmBtn) {
+                if (selectedUseCount === 1) {
+                    confirmBtn.innerText = 'Dùng Ngay';
+                } else {
+                    confirmBtn.innerText = `Dùng ${selectedUseCount} cái`;
+                }
+            }
+        };
+
+        const showLuckyPotionConfirm = (potion) => {
+            currentPotionToUse = potion;
+            selectedUseCount = 1; // Reset to 1
+            
+            document.getElementById('lucky-potion-icon').innerText = potion.icon;
+            document.getElementById('lucky-potion-name').innerText = potion.name;
+            document.getElementById('lucky-potion-desc').innerText = potion.description;
+            document.getElementById('lucky-potion-count').innerText = potion.count > 1 ? potion.count + ' bình' : '1 bình';
+            
+            // Reset selected count display
+            document.getElementById('selected-use-count').innerText = 'Sẽ dùng: 1';
+            
+            const confirmBtn = document.getElementById('btn-confirm-use-potion');
+            confirmBtn.onclick = () => confirmUsePotion(selectedUseCount);
+            confirmBtn.innerText = 'Dùng Ngay';
+            
+            document.getElementById('lucky-potion-confirm-modal').classList.remove('hidden');
+        };
+
+        const closeLuckyPotionConfirm = () => {
+            document.getElementById('lucky-potion-confirm-modal').classList.add('hidden');
+            currentPotionToUse = null;
+        };
+
+        const confirmUsePotion = (useCount = 1) => {
+            if (!currentPotionToUse) return;
+            
+            // Validate useCount
+            useCount = parseInt(useCount) || 1;
+            useCount = Math.max(1, useCount);
+            
+            // Find the potion in inventory - be more flexible with matching
+            const potionIndex = inventory.findIndex(item => 
+                item.id === currentPotionToUse.id && 
+                item.type === 'consumable' &&
+                item.name === 'Lucky Potion'
+            );
+            
+            if (potionIndex === -1) {
+                showNotif("Không tìm thấy potion trong inventory!", "❌");
+                closeLuckyPotionConfirm();
+                return;
+            }
             
             const potion = inventory[potionIndex];
+            if (!potion) {
+                showNotif("Potion không hợp lệ!", "❌");
+                closeLuckyPotionConfirm();
+                return;
+            }
             
-            // Remove potion from inventory
-            if (potion.count > 1) {
-                potion.count--;
+            // Ensure count is valid
+            if (!potion.count || potion.count <= 0) {
+                showNotif("Potion đã hết!", "❌");
+                closeLuckyPotionConfirm();
+                return;
+            }
+            
+            // Check if player has enough potions
+            if (potion.count < useCount) {
+                showNotif(`Chỉ còn ${potion.count} potion!`, "❌");
+                return;
+            }
+            
+            // Remove potions from inventory
+            if (potion.count > useCount) {
+                potion.count -= useCount;
             } else {
                 inventory.splice(potionIndex, 1);
             }
             
-            // Add potion effect (5 minutes = 300000 ms)
-            const endTime = Date.now() + 300000;
-            activePotions.push({ id: potionId, endTime: endTime });
+            // Add potion effect - extend or create time (5 minutes per potion = 300000 ms)
+            const now = Date.now();
+            const existingPotion = activePotions.find(p => p.id === currentPotionToUse.id);
+            
+            if (existingPotion) {
+                // Extend existing potion time
+                existingPotion.endTime += (useCount * 300000);
+            } else {
+                // Create new potion effect
+                const endTime = now + (useCount * 300000);
+                activePotions.push({ id: currentPotionToUse.id, endTime: endTime });
+            }
             
             // Update potion luck bonus
             updatePotionLuckBonus();
             
             // Show notification
-            showNotif("Đã dùng Lucky Potion! +50% may mắn trong 5 phút", "🧪");
+            const totalMinutes = useCount * 5;
+            showNotif(`Đã dùng ${useCount} Lucky Potion! x2 luck trong ${totalMinutes} phút`, "🧪");
             
             // Update UI
             renderInventory();
-            updateStats();
             saveToLocal();
+            
+            closeLuckyPotionConfirm();
+        };
+
+        const useLuckyPotion = (potionId) => {
+            const potion = inventory.find(item => item.id === potionId && item.type === 'consumable');
+            if (!potion) return;
+            
+            // Show confirmation popup using web modal
+            showLuckyPotionConfirm(potion);
         };
 
         const updatePotionLuckBonus = () => {
@@ -2411,11 +2593,46 @@ let merchantStock = []; // Current merchant stock
             // Remove expired potions
             activePotions = activePotions.filter(potion => potion.endTime > now);
             
-            // Calculate bonus (each potion gives 1.0 = x2 luck)
-            potionLuckBonus = activePotions.length * 1.0;
+            // Calculate bonus - lucky potions always give x2 luck, only duration stacks
+            potionLuckBonus = activePotions.length > 0 ? 1.0 : 0.0;
             
             // Update luck display
             updateLuckDisplay();
+            
+            // Update Lucky Potion timer display
+            updateLuckyPotionTimer();
+        };
+
+        const updateLuckyPotionTimer = () => {
+            const timerElement = document.getElementById('lucky-potion-timer');
+            const countdownElement = document.getElementById('lucky-potion-countdown');
+            const multiplierElement = document.getElementById('lucky-potion-multiplier');
+            
+            if (!timerElement || !countdownElement || !multiplierElement) return;
+            
+            const now = Date.now();
+            const activePotionsList = activePotions.filter(potion => potion.endTime > now);
+            
+            if (activePotionsList.length === 0) {
+                timerElement.classList.add('hidden');
+                return;
+            }
+            
+            // Find the potion with the longest remaining time
+            const longestPotion = activePotionsList.reduce((longest, potion) => 
+                potion.endTime > longest.endTime ? potion : longest
+            );
+            
+            const remainingTime = Math.max(0, longestPotion.endTime - now);
+            const minutes = Math.floor(remainingTime / 60000);
+            const seconds = Math.floor((remainingTime % 60000) / 1000);
+            
+            countdownElement.innerText = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            // Show actual multiplier when potions are active
+            const currentMultiplier = window.calculateLuckMultiplier();
+            multiplierElement.innerText = `x${currentMultiplier.toFixed(1)}`;
+            
+            timerElement.classList.remove('hidden');
         };
 
         const getPotionTimeRemaining = () => {
@@ -2453,55 +2670,27 @@ let merchantStock = []; // Current merchant stock
         const restockMerchant = () => {
             merchantStock = [];
             
-            // Always add Lucky Potion
-            merchantStock.push({
-                id: Date.now() + Math.random().toString(36).substr(2, 5) + 'potion',
-                name: 'Lucky Potion',
-                icon: '🧪',
-                type: 'consumable',
-                rarity: 'RARE',
-                price: 50000,
-                description: 'Tăng gấp đôi luck trong 10 phút',
-                outOfStock: false
-            });
+            // Add random stock of Lucky Potions (0-3)
+            const potionCount = Math.floor(Math.random() * 4); // 0-3 potions
             
-            // Add 2-4 random elements from ELEMENT_POOL (excluding common)
-            const elementChoices = ELEMENT_POOL.filter(el => el.rarity !== 'COMMON');
-            const elementCount = Math.floor(Math.random() * 3) + 2; // 2-4 elements
-            
-            for (let i = 0; i < elementCount; i++) {
-                const randomElement = elementChoices[Math.floor(Math.random() * elementChoices.length)];
+            for (let i = 0; i < potionCount; i++) {
                 merchantStock.push({
-                    id: Date.now() + Math.random().toString(36).substr(2, 5) + 'element' + i,
-                    name: randomElement.name,
-                    icon: randomElement.icon,
-                    rarity: randomElement.rarity,
-                    price: randomElement.price * 2, // 2x price in shop
-                    description: `Nguyên tố ${randomElement.rarity} từ cửa hàng`,
-                    merchantItem: true,
+                    id: Date.now() + Math.random().toString(36).substr(2, 5) + 'potion' + i,
+                    name: 'Lucky Potion',
+                    icon: '🧪',
+                    type: 'consumable',
+                    rarity: 'RARE',
+                    price: 500000,
+                    description: 'Tăng gấp đôi luck trong 10 phút',
                     outOfStock: false
                 });
             }
             
-            // Add 1-2 additional items
-            const additionalItems = [
-                { name: 'Bùa May Mắn', icon: '🔮', rarity: 'RARE', price: 75000, description: 'Tăng 15% luck trong 5 phút' },
-                { name: 'Hộp Quà Bí Mật', icon: '🎁', rarity: 'EPIC', price: 150000, description: 'Chứa 1-3 vật phẩm ngẫu nhiên' },
-                { name: 'Vé Quay VIP', icon: '🎟️', rarity: 'LEGENDARY', price: 300000, description: 'Quay miễn phí 1 lần với luck x2' }
-            ];
+            // Set next restock time (2 minutes 30 seconds)
+            shopRestockTime = Date.now() + (150 * 1000);
             
-            const extraCount = Math.floor(Math.random() * 2) + 1; // 1-2
-            for (let i = 0; i < extraCount; i++) {
-                const randomItem = additionalItems[Math.floor(Math.random() * additionalItems.length)];
-                merchantStock.push({
-                    id: Date.now() + Math.random().toString(36).substr(2, 5) + 'extra' + i,
-                    ...randomItem,
-                    outOfStock: false
-                });
-            }
-            
-            // Set next restock time (15 minutes)
-            shopRestockTime = Date.now() + (15 * 60 * 1000);
+            // Force render shop to update display
+            renderShop();
         };
 
         const updateShopRestockTimer = () => {
@@ -2527,42 +2716,53 @@ let merchantStock = []; // Current merchant stock
             if (merchantStock.length === 0) {
                 merchantContainer.innerHTML = '<div class="col-span-full text-center text-slate-500 font-black text-sm p-8">Hết hàng! Chờ restock...</div>';
             } else {
+                // Group items by name to avoid duplicates
+                const groupedItems = {};
                 merchantStock.forEach(item => {
+                    if (!groupedItems[item.name]) {
+                        groupedItems[item.name] = {
+                            ...item,
+                            instances: []
+                        };
+                    }
+                    groupedItems[item.name].instances.push(item);
+                });
+                
+                // Render only one card per item type
+                Object.values(groupedItems).forEach(itemGroup => {
                     const card = document.createElement('div');
-                    const isOutOfStock = item.outOfStock;
+                    
+                    // Check if all instances are out of stock
+                    const allOutOfStock = itemGroup.instances.every(instance => instance.outOfStock);
+                    const inStockCount = itemGroup.instances.filter(instance => !instance.outOfStock).length;
                     
                     // Apply different styling for out of stock items
-                    if (isOutOfStock) {
+                    if (allOutOfStock) {
                         card.className = 'shop-item disabled';
                     } else {
                         card.className = 'shop-item';
                     }
-                    card.style.borderColor = (RARITIES[item.rarity]?.color || '#334155') + '33';
+                    card.style.borderColor = (RARITIES[itemGroup.rarity]?.color || '#334155') + '33';
                     
-                    if (!isOutOfStock) {
+                    if (!allOutOfStock) {
                         card.onclick = () => {
-                            if (balance >= item.price) {
-                                showPurchaseConfirm(item, 'merchant');
+                            if (balance >= itemGroup.price) {
+                                showPurchaseConfirm(itemGroup, 'merchant');
                             }
                         };
                     }
                     
-                    // Count items of the same type in stock (excluding out of stock items)
-                    const itemCount = merchantStock.filter(stockItem => 
-                        stockItem.name === item.name && !stockItem.outOfStock
-                    ).length;
-                    
                     card.innerHTML = `
-                        <div class="shop-item-icon">${item.icon}</div>
-                        <div class="shop-item-rarity ${getRarityTextClass(item.rarity)}" style="${getRarityStyle(item.rarity)}">${item.rarity}</div>
-                        <div class="shop-item-name">${item.name}</div>
-                        <div class="shop-item-description">${item.description}</div>
-                        <div class="shop-item-price">${item.price.toLocaleString()}$</div>
-                        <div class="text-[10px] ${isOutOfStock ? 'text-red-400' : 'text-yellow-400'} font-bold mb-2">
-                            ${isOutOfStock ? 'HẾT HÀNG' : `Còn: ${itemCount}`}
+                        <div class="shop-item-icon">${itemGroup.icon}</div>
+                        <div class="shop-item-rarity ${getRarityTextClass(itemGroup.rarity)}" style="${getRarityStyle(itemGroup.rarity)}">${itemGroup.rarity}</div>
+                        <div class="shop-item-name">${itemGroup.name}</div>
+                        <div class="shop-item-description">${itemGroup.description}</div>
+                        <div class="shop-item-price">${itemGroup.price.toLocaleString()}$</div>
+                        <div class="text-[10px] ${allOutOfStock ? 'text-red-400' : 'text-yellow-400'} font-bold mb-2">
+                            ${allOutOfStock ? 'HẾT HÀNG' : `Còn: ${inStockCount}`}
                         </div>
-                        <button class="shop-item-button" ${isOutOfStock || balance < item.price ? 'disabled' : ''}>
-                            ${isOutOfStock ? 'HẾT HÀNG' : 'MUA NGAY'}
+                        <button class="shop-item-button" ${allOutOfStock || balance < itemGroup.price ? 'disabled' : ''}>
+                            ${allOutOfStock ? 'HẾT HÀNG' : 'MUA NGAY'}
                         </button>
                     `;
                     
@@ -2656,8 +2856,10 @@ let merchantStock = []; // Current merchant stock
                 return;
             }
             
-            // Mark as out of stock instead of removing
-            const index = merchantStock.findIndex(stockItem => stockItem.id === item.id);
+            // Find first available item of this type and mark as out of stock
+            const index = merchantStock.findIndex(stockItem => 
+                stockItem.name === item.name && !stockItem.outOfStock
+            );
             if (index !== -1) {
                 merchantStock[index].outOfStock = true;
             }
@@ -2665,7 +2867,13 @@ let merchantStock = []; // Current merchant stock
             // Add to inventory
             const newItem = {...item};
             delete newItem.merchantItem;
+            delete newItem.instances; // Remove instances array from grouped item
             newItem.id = Date.now() + Math.random().toString(36).substr(2, 5);
+            
+            // Ensure count is set for consumables
+            if (newItem.type === 'consumable' && !newItem.count) {
+                newItem.count = 1;
+            }
             
             const existingPotion = inventory.find(invItem => invItem.name === newItem.name && invItem.type === 'consumable');
             if (existingPotion) {
@@ -2757,6 +2965,7 @@ let merchantStock = []; // Current merchant stock
 
         setInterval(updatePackButtonStates, 1000);
         setInterval(updateShopRestockTimer, 1000);
+        setInterval(updateLuckyPotionTimer, 1000);
 
         window.adminGiveAll = () => {
             ELEMENT_POOL.forEach(el => {
@@ -2791,20 +3000,41 @@ let merchantStock = []; // Current merchant stock
                 const parts = raw.split('+');
                 name = parts[0].trim(); countToAdd = parseInt(parts[1]) || 1;
             }
-            const element = [...ELEMENT_POOL, ...LIMITED_ELEMENTS].find(e => e.name.toLowerCase() === name.toLowerCase());
-            if (element) {
-                const existingIdx = inventory.findIndex(i => i.name === element.name);
-                if (existingIdx !== -1) inventory[existingIdx].count = (inventory[existingIdx].count || 1) + countToAdd;
-                else {
+            
+            // Check for lucky potion
+            if (name.toLowerCase() === 'lucky potion' || name.toLowerCase() === 'luck potion') {
+                const existingPotion = inventory.find(item => item.name === 'Lucky Potion' && item.type === 'consumable');
+                if (existingPotion) {
+                    existingPotion.count = (existingPotion.count || 1) + countToAdd;
+                } else {
                     inventory.push({
                         id: Date.now() + Math.random().toString(36).substr(2, 5),
-                        name: element.name, icon: element.icon, rarity: element.rarity, price: element.price, count: countToAdd,
-                        timestamp: new Date().toISOString(), isLimited: element.isLimited, displayPrice: element.displayPrice
+                        name: 'Lucky Potion',
+                        icon: '🧪',
+                        type: 'consumable',
+                        rarity: 'RARE',
+                        price: 500000,
+                        count: countToAdd,
+                        description: 'Tăng gấp đôi luck trong 10 phút'
                     });
                 }
-                addToCollectionTracking(element.name);
-                showNotif(`GIVE ${element.name} x${countToAdd}`, "📦"); updateStats(); saveToLocal();
-            } else { showNotif("KHÔNG TÌM THẤY!", "⚠️"); }
+                showNotif(`GIVE Lucky Potion x${countToAdd}`, "🧪"); updateStats(); saveToLocal();
+            } else {
+                const element = [...ELEMENT_POOL, ...LIMITED_ELEMENTS].find(e => e.name.toLowerCase() === name.toLowerCase());
+                if (element) {
+                    const existingIdx = inventory.findIndex(i => i.name === element.name);
+                    if (existingIdx !== -1) inventory[existingIdx].count = (inventory[existingIdx].count || 1) + countToAdd;
+                    else {
+                        inventory.push({
+                            id: Date.now() + Math.random().toString(36).substr(2, 5),
+                            name: element.name, icon: element.icon, rarity: element.rarity, price: element.price, count: countToAdd,
+                            timestamp: new Date().toISOString(), isLimited: element.isLimited, displayPrice: element.displayPrice
+                        });
+                    }
+                    addToCollectionTracking(element.name);
+                    showNotif(`GIVE ${element.name} x${countToAdd}`, "📦"); updateStats(); saveToLocal();
+                } else { showNotif("KHÔNG TÌM THẤY!", "⚠️"); }
+            }
             input.value = '';
         };
 
@@ -2818,6 +3048,7 @@ let merchantStock = []; // Current merchant stock
             
             // Store admin luck bonus as direct multiplier
             window.adminLuckBonus = luckMultiplier;
+            console.log(`🍀 DEBUG: adminSetLuck() - Set window.adminLuckBonus to: x${window.adminLuckBonus}`);
             
             // Update display
             const currentLuckElement = document.getElementById('admin-current-luck');
@@ -2833,15 +3064,62 @@ let merchantStock = []; // Current merchant stock
 
         // Update calculateLuckMultiplier to include admin bonus
         const originalCalculateLuckMultiplier = calculateLuckMultiplier;
+        console.log(`🍀 DEBUG: originalCalculateLuckMultiplier captured:`, typeof originalCalculateLuckMultiplier);
+        
         window.calculateLuckMultiplier = () => {
             let multiplier = originalCalculateLuckMultiplier();
+            console.log(`🍀 DEBUG: calculateLuckMultiplier() - original multiplier: x${multiplier}`);
+            console.log(`🍀 DEBUG: calculateLuckMultiplier() - adminLuckBonus: x${window.adminLuckBonus || 0}`);
             
-            // Add admin luck bonus if set (direct multiplier, not percentage)
-            if (window.adminLuckBonus) {
-                multiplier += window.adminLuckBonus;
+            // Add admin luck bonus if set (SỬA: nhân thay vì cộng)
+            if (window.adminLuckBonus && window.adminLuckBonus > 0) {
+                const oldMultiplier = multiplier;
+                multiplier *= window.adminLuckBonus;
+                console.log(`🍀 DEBUG: calculateLuckMultiplier() - ${oldMultiplier} * ${window.adminLuckBonus} = ${multiplier}`);
             }
             
+            console.log(`🍀 DEBUG: calculateLuckMultiplier() - final multiplier: x${multiplier}`);
             return multiplier;
+        };
+
+        // Test function to verify luck system works correctly
+        window.testLuckSystem = (testLuckMultiplier) => {
+            const resultsDiv = document.getElementById('luck-test-results');
+            resultsDiv.innerHTML = `Testing x${testLuckMultiplier} luck...`;
+            
+            // Simulate 1000 rolls with the test luck
+            const testResults = {};
+            const numTestRolls = 1000;
+            
+            for (let i = 0; i < numTestRolls; i++) {
+                const sortedElements = [...ELEMENT_POOL].sort((a, b) => b.chance - a.chance);
+                
+                for (const element of sortedElements) {
+                    // Use the FIXED logic
+                    if (Math.random() < testLuckMultiplier / element.chance) {
+                        testResults[element.name] = (testResults[element.name] || 0) + 1;
+                        break;
+                    }
+                }
+            }
+            
+            // Display results for rare items only
+            let html = `<strong>x${testLuckMultiplier} Test Results (${numTestRolls} rolls):</strong><br>`;
+            
+            const rareItems = ['Ma Trận', 'Phóng xạ', 'Vàng', 'Kim Cương', 'Ruby', 'Lục Bảo'];
+            for (const itemName of rareItems) {
+                const count = testResults[itemName] || 0;
+                const element = ELEMENT_POOL.find(e => e.name === itemName);
+                if (element) {
+                    const expectedOdds = element.chance / testLuckMultiplier;
+                    const actualOdds = count > 0 ? (numTestRolls / count).toFixed(1) : '∞';
+                    const percentage = ((count / numTestRolls) * 100).toFixed(2);
+                    
+                    html += `${itemName}: ${count} (${percentage}%) - 1:${actualOdds} (exp: 1:${expectedOdds.toFixed(1)})<br>`;
+                }
+            }
+            
+            resultsDiv.innerHTML = html;
         };
 
         window.adminResetAll = () => {
@@ -2850,6 +3128,7 @@ let merchantStock = []; // Current merchant stock
                 inventory = [];
                 balance = 0;
                 tdWins = 0;
+                totalRolls = 0;
                 currentPage = 1;
                 skills = { autoRoll: false, skillTree: false, speed1: false, speed2: false, speed3: false, speed4: false, speed5: false, economy1: false, economy2: false, economy3: false, economy4: false, economy5: false, autoSell: false, x2Sell: false };
                 gamepass = { vip1: false };
@@ -2863,11 +3142,18 @@ let merchantStock = []; // Current merchant stock
                 tdAutoSkip = false;
                 currentPopup = null;
                 
+                // Reset lucky potion data
+                activePotions = [];
+                potionLuckBonus = 0;
+                currentLuckMultiplier = 1.0;
+                window.adminLuckBonus = 0;
+                
                 // Clear local storage
                 localStorage.removeItem('legacy_collection_save_v3');
                 
                 // Update UI
                 updateStats();
+                updateLuckDisplay();
                 renderInventory();
                 renderSkillTree();
                 updatePackButtonStates();
@@ -3208,7 +3494,7 @@ let merchantStock = []; // Current merchant stock
                     icon: '🧪',
                     type: 'consumable',
                     rarity: 'RARE',
-                    price: 50000,
+                    price: 500000,
                     count: 1,
                     timestamp: new Date().toISOString(),
                     description: 'x2 may mắn trong 5 phút'
@@ -3224,11 +3510,17 @@ let merchantStock = []; // Current merchant stock
                 
                 // Show notification for lucky potion drop
                 setTimeout(() => {
-                    showNotif("🧪 Lucky Potion rơi ra! (1/100)", "✨");
+                    showNotif("🧪 Lucky Potion rơi ra! (x2 luck trong 5 phút)", "✨");
                     renderInventory();
                     saveToLocal();
                 }, 2000);
             }
+            
+            // DEBUG: Log current luck multiplier before rolling
+            console.log(`🍀 DEBUG: rollCard() called with currentLuckMultiplier: x${currentLuckMultiplier}`);
+            console.log(`🍀 DEBUG: adminLuckBonus: x${window.adminLuckBonus || 0}`);
+            console.log(`🍀 DEBUG: potionLuckBonus: x${potionLuckBonus}`);
+            console.log(`🍀 DEBUG: Final calculated luck multiplier: x${calculateLuckMultiplier()}`);
             
             const selected = rollFromPool(currentLuckMultiplier);
             startRollAnimation(selected);
@@ -4299,6 +4591,80 @@ let merchantStock = []; // Current merchant stock
             drawTDGame(); tdGameLoop = requestAnimationFrame(updateTDGame);
         };
 
+        // Luck Potion Status Functions
+        window.showLuckPotionStatus = () => {
+            const activePotions = inventory.filter(item => item.name === 'Lucky Potion' && item.type === 'consumable');
+            const modal = document.getElementById('luck-potion-modal');
+            
+            if (activePotions.length === 0) {
+                showNotif("Bạn không có Lucky Potion nào!", "🧪");
+                return;
+            }
+            
+            // Calculate total luck bonus and remaining time
+            let totalLuckBonus = 0;
+            let remainingTime = 0;
+            let potionDetails = [];
+            
+            activePotions.forEach(potion => {
+                if (potion.endTime) {
+                    const now = Date.now();
+                    if (now < potion.endTime) {
+                        totalLuckBonus += 2.0; // Each potion gives x2 luck
+                        remainingTime = Math.max(remainingTime, potion.endTime - now);
+                        potionDetails.push({
+                            type: 'Lucky Potion',
+                            bonus: 'x2 luck',
+                            remaining: formatTimeRemaining(potion.endTime - now)
+                        });
+                    }
+                }
+            });
+            
+            // Update potionLuckBonus
+            potionLuckBonus = totalLuckBonus;
+            updateLuckDisplay();
+            
+            // Show modal
+            modal.classList.remove('hidden');
+            modal.innerHTML = `
+                <div class="modal-bg fixed inset-0 flex items-center justify-center z-50">
+                    <div class="bg-slate-900 border-2 border-yellow-500/50 rounded-2xl p-8 max-w-md mx-4 relative">
+                        <div class="absolute top-4 right-4">
+                            <button onclick="closeLuckPotionModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+                        </div>
+                        <h3 class="text-2xl font-black text-yellow-400 mb-6 text-center">🧪 TRẠNG THÁI LUCKY POTION</h3>
+                        <div class="space-y-4">
+                            <div class="text-center">
+                                <p class="text-lg font-bold text-white mb-2">Tổng Luck Bonus: <span class="text-green-400">x${totalLuckBonus.toFixed(1)}</span></p>
+                                <p class="text-sm text-slate-300">Thời gian còn lại: <span class="text-yellow-400">${formatTimeRemaining(remainingTime)}</span></p>
+                            </div>
+                            ${potionDetails.map((potion, index) => `
+                                <div class="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-white font-medium">${potion.type}</span>
+                                        <span class="text-green-400 font-bold">${potion.bonus}</span>
+                                    </div>
+                                    <div class="text-sm text-slate-400 mt-2">Còn lại: ${potion.remaining}</div>
+                                </div>
+                            `).join('')}
+                            <div class="flex justify-center mt-6">
+                                <button onclick="closeLuckPotionModal()" class="bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-bold py-3 px-8 rounded-lg transition-colors">
+                                    Đóng
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
+
+        window.closeLuckPotionModal = () => {
+            const modal = document.getElementById('luck-potion-modal');
+            modal.classList.add('hidden');
+        };
+
+        
         const drawTDGame = () => {
             tdCtx.clearRect(0, 0, tdCanvas.width, tdCanvas.height);
             tdCtx.fillStyle = '#1e293b'; tdPathPoints.forEach(p => tdCtx.fillRect(p.x * TD_CELL, p.y * TD_CELL, TD_CELL, TD_CELL));
@@ -4406,7 +4772,7 @@ let merchantStock = []; // Current merchant stock
                 restockMerchant();
             } else if (shopRestockTime === 0) {
                 // Set initial restock time if not set
-                shopRestockTime = Date.now() + (15 * 60 * 1000);
+                shopRestockTime = Date.now() + (150 * 1000);
             }
             
             if(!document.getElementById('inventory-modal').classList.contains('hidden')) renderInventory();
@@ -4417,6 +4783,9 @@ let merchantStock = []; // Current merchant stock
             setTimeout(() => { 
                 document.getElementById('loading-screen').classList.add('hidden'); 
                 document.getElementById('main-menu').classList.remove('hidden'); 
+                
+                // Initialize potion system after DOM is ready
+                updatePotionLuckBonus();
                 showNotif("ĐÃ TẢI DỮ LIỆU ĐỊA PHƯƠNG", "💾"); 
             }, 500);
         };
