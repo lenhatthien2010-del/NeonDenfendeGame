@@ -1782,6 +1782,7 @@ let merchantStock = []; // Current merchant stock
         let lastTradeTime = 0; 
         let isAutoOn = false; 
         let isRolling = false;
+        let rollPityCount = 0; // Bộ đếm pity: mỗi 10 roll -> x2 luck
 
         // Skill Tree Data Structure
         const SKILL_TREE_DATA = {
@@ -2159,7 +2160,7 @@ let merchantStock = []; // Current merchant stock
                     inventory, skills, gamepass, balance, usedCodes, lastPackBuyTimes, autoSellSettings,
                     tdWins, lastTradeTime, collectionTracking: Array.from(collectionTracking), totalRolls, 
                     activePotions, currentInventoryTab, currentShopTab, shopRestockTime, merchantStock, 
-                    adminLuckBonus: window.adminLuckBonus || 0, lastUpdate: new Date().toISOString()
+                    adminLuckBonus: window.adminLuckBonus || 0, rollPityCount, lastUpdate: new Date().toISOString()
                 };
                 // GIỮ NGUYÊN KEY CŨ: 'legacy_collection_save_v3' để không làm mất data người chơi
                 localStorage.setItem('legacy_collection_save_v3', JSON.stringify(dataToSave));
@@ -3146,6 +3147,8 @@ let merchantStock = []; // Current merchant stock
                 potionLuckBonus = 0;
                 currentLuckMultiplier = 1.0;
                 window.adminLuckBonus = 0;
+                rollPityCount = 0;
+                updateRollCounter();
                 
                 // Clear local storage
                 localStorage.removeItem('legacy_collection_save_v3');
@@ -3477,6 +3480,24 @@ let merchantStock = []; // Current merchant stock
             document.getElementById('trade-choice-modal').classList.add('hidden'); closeTradeCenter();
         };
 
+        // Cập nhật bộ đếm pity hiển thị trên nút ROLL
+        const updateRollCounter = () => {
+            const counterEl = document.getElementById('roll-counter');
+            if (!counterEl) return;
+            const remaining = 10 - rollPityCount;
+            if (rollPityCount === 0) {
+                // Vừa reset về 0 sau khi đánh pity
+                counterEl.innerText = '0/10';
+                counterEl.style.color = '';
+            } else if (remaining === 1) {
+                counterEl.innerText = '✨ x2 LUCK READY!';
+                counterEl.style.color = '#22c55e';
+            } else {
+                counterEl.innerText = `${rollPityCount}/10`;
+                counterEl.style.color = '';
+            }
+        };
+
         const rollCard = () => {
             if(isRolling) return;
             isRolling = true;
@@ -3484,6 +3505,14 @@ let merchantStock = []; // Current merchant stock
             
             // Increment total rolls counter
             totalRolls++;
+            
+            // Pity counter
+            rollPityCount++;
+            const isPityRoll = rollPityCount >= 10;
+            if (isPityRoll) {
+                rollPityCount = 0;
+            }
+            updateRollCounter();
             
             // Check for lucky potion drop (1 in 100 chance)
             if (Math.random() < 0.01) { // 1% chance
@@ -3521,7 +3550,13 @@ let merchantStock = []; // Current merchant stock
             console.log(`🍀 DEBUG: potionLuckBonus: x${potionLuckBonus}`);
             console.log(`🍀 DEBUG: Final calculated luck multiplier: x${calculateLuckMultiplier()}`);
             
-            const selected = rollFromPool(currentLuckMultiplier);
+            // Pity: lần 10 được x2 luck (chỉ trong roll này)
+            const effectiveLuck = isPityRoll ? currentLuckMultiplier * 2 : currentLuckMultiplier;
+            if (isPityRoll) {
+                showNotif("✨ PITY x2 LUCK! Roll thứ 10 kích hoạt!", "🍀");
+            }
+            
+            const selected = rollFromPool(effectiveLuck);
             startRollAnimation(selected);
         };
 
@@ -4740,6 +4775,7 @@ let merchantStock = []; // Current merchant stock
                 shopRestockTime = localData.shopRestockTime || 0;
                 merchantStock = localData.merchantStock || [];
                 window.adminLuckBonus = localData.adminLuckBonus || 0;
+                rollPityCount = localData.rollPityCount || 0;
                                 // Tải collectionTracking từ localStorage (nếu có)
                 if(localData.collectionTracking) {
                     collectionTracking = new Set(localData.collectionTracking);
@@ -4765,6 +4801,7 @@ let merchantStock = []; // Current merchant stock
             }
 
             updateStats();
+            updateRollCounter();
             
             // Initialize shop system
             if (merchantStock.length === 0) {
