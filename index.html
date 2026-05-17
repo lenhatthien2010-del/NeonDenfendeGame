@@ -71,17 +71,45 @@
 
         .text-rainbow {
             background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff, #ff0000);
+            background-size: 200% 200%;
             -webkit-background-clip: text;
             background-clip: text;
-            color: transparent !important;
-            animation: rainbow 3s linear infinite;
-            background-size: 200% 100%;
+            color: transparent;
+            animation: rainbow-neon 2s ease infinite;
+            filter: drop-shadow(0 0 8px rgba(255,255,255,0.8));
+            text-shadow: 0 0 20px rgba(255,255,255,0.5);
         }
-        @keyframes rainbow {
+
+        @keyframes rainbow-neon {
             0% { background-position: 0% 50%; }
-            100% { background-position: 200% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
-        
+
+        .rarity-glow-ultimate {
+            animation: ultimate-pulse 2s ease-in-out infinite;
+            border-color: #ff00ff !important;
+        }
+
+        @keyframes ultimate-pulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(255,0,255,0.8), 0 0 40px rgba(0,255,255,0.6), 0 0 60px rgba(255,255,0,0.4); border-color: #ff00ff; }
+            33% { box-shadow: 0 0 20px rgba(0,255,255,0.8), 0 0 40px rgba(255,255,0,0.6), 0 0 60px rgba(255,0,255,0.4); border-color: #00ffff; }
+            66% { box-shadow: 0 0 20px rgba(255,255,0,0.8), 0 0 40px rgba(255,0,255,0.6), 0 0 60px rgba(0,255,255,0.4); border-color: #ffff00; }
+        }
+
+        .ultimate-border-rainbow {
+            border: 4px solid transparent;
+            background: linear-gradient(#1e293b, #1e293b) padding-box,
+                        linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff, #ff0000) border-box;
+            background-size: 100% 100%, 200% 200%;
+            animation: border-rainbow 2s linear infinite;
+        }
+
+        @keyframes border-rainbow {
+            0% { background-position: 0 0, 0% 50%; }
+            100% { background-position: 0 0, 200% 50%; }
+        }
+
         .modal-bg { 
             backdrop-filter: blur(12px); 
             background-color: rgba(0, 0, 0, 0.85); 
@@ -1023,6 +1051,47 @@
         </div>
     </div>
 
+    <!-- INFINITI REWARD MODAL -->
+    <div id="infiniti-reward-modal" class="hidden fixed inset-0 z-[100] modal-bg flex items-center justify-center p-6">
+        <div class="bg-slate-900 border-4 border-purple-500 p-8 rounded-[2.5rem] max-w-sm w-full text-center shadow-[0_0_50px_rgba(168,85,247,0.4)] relative overflow-hidden">
+            <div class="absolute inset-0 bg-purple-500/10 animate-pulse pointer-events-none"></div>
+            <div class="text-6xl mb-4 relative z-10">♾️</div>
+            <h2 class="text-3xl font-black mb-2 text-purple-500 uppercase relative z-10">HOÀN THÀNH!</h2>
+            <p class="text-slate-300 text-[10px] font-bold mb-6 uppercase tracking-wider relative z-10">Bạn đã hoàn thành <span id="infiniti-wave-count">0</span> wave</p>
+            <div class="bg-slate-950/80 border border-slate-800 p-4 rounded-2xl mb-6 relative z-10">
+                <p class="text-[10px] text-slate-500 font-black uppercase mb-1">Phần thưởng</p>
+                <p class="text-2xl font-black text-green-400">+<span id="infiniti-reward-amount">0</span>$</p>
+            </div>
+            <div class="flex gap-3 relative z-10">
+                <button onclick="cancelInfinitiReward()" class="w-1/2 bg-slate-700 hover:bg-slate-600 text-white font-black py-4 rounded-xl uppercase text-xs press-effect">HỦY</button>
+                <button onclick="confirmInfinitiReward()" class="w-1/2 bg-purple-500 hover:bg-purple-400 text-white font-black py-4 rounded-xl uppercase text-xs press-effect">NHẬN</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME SELECTION MODAL -->
+    <div id="game-selection-modal" class="hidden fixed inset-0 z-[100] modal-bg flex items-center justify-center p-6">
+        <div class="bg-slate-900 border-4 border-yellow-500 p-8 rounded-[2.5rem] max-w-2xl w-full shadow-[0_0_50px_rgba(234,179,8,0.4)] relative overflow-hidden">
+            <div class="absolute inset-0 bg-yellow-500/10 animate-pulse pointer-events-none"></div>
+            <div class="flex justify-between items-center mb-6 relative z-10">
+                <h2 class="text-3xl font-black text-yellow-500 uppercase">CHỌN GAME</h2>
+                <button onclick="closeGameSelection()" class="text-slate-400 hover:text-white text-2xl">✕</button>
+            </div>
+            <div class="grid grid-cols-2 gap-4 relative z-10">
+                <button onclick="openTD()" class="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white font-black p-6 rounded-2xl transition-all press-effect flex flex-col items-center gap-3 shadow-lg">
+                    <div class="text-5xl">🏰</div>
+                    <div class="text-lg uppercase">Thủ Thành</div>
+                    <div class="text-[10px] text-slate-200">Bảo vệ căn cứ khỏi quái</div>
+                </button>
+                <button onclick="showNotif('SẮP RA MẮT!', '🔜')" class="bg-slate-800 hover:bg-slate-700 text-slate-400 font-black p-6 rounded-2xl transition-all press-effect flex flex-col items-center gap-3 border-2 border-slate-700">
+                    <div class="text-5xl">🔜</div>
+                    <div class="text-lg uppercase">Sắp ra mắt</div>
+                    <div class="text-[10px] text-slate-500">Game mới đang phát triển</div>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="notif-bar" class="notification px-6 py-3 bg-white text-slate-950 font-black rounded-full shadow-2xl flex items-center gap-3">
         <span id="notif-icon">🔔</span>
         <span id="notif-text">THÔNG BÁO</span>
@@ -1135,8 +1204,8 @@
                         <button onclick="toggleSkillTree(true)" class="press-effect bg-green-600/80 border border-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm uppercase">
                             🌳 Kỹ năng
                         </button>
-                        <button onclick="openTD()" class="relative col-span-2 press-effect bg-gradient-to-r from-red-600 to-orange-600 text-white font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm uppercase shadow-[0_0_15px_rgba(239,68,68,0.4)]">
-                            ⚔️ THỦ THÀNH NGUYÊN TỐ
+                        <button onclick="openGameSelection()" class="relative col-span-2 press-effect bg-gradient-to-r from-red-600 to-orange-600 text-white font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm uppercase shadow-[0_0_15px_rgba(239,68,68,0.4)]">
+                            🎮 PLAY!
                             <div class="absolute -top-2 -right-2 bg-yellow-500 text-slate-950 text-[10px] font-black px-2 py-1 rounded-full border-2 border-slate-900 shadow-lg">🏆 <span id="td-wins-count">0</span></div>
                         </button>
                         <button onclick="openTradeCenter()" class="col-span-2 press-effect bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm uppercase shadow-lg">
@@ -1235,14 +1304,14 @@
                     <h3 class="text-lg font-black text-white uppercase mb-3">Chọn Bản Đồ</h3>
                     <div class="grid grid-cols-2 gap-4">
                         <button onclick="selectMap('A')" id="map-btn-A" class="map-btn bg-slate-800 border-2 border-slate-700 hover:border-yellow-500 p-4 rounded-xl transition-all press-effect">
-                            <div class="text-4xl mb-2">🗺️</div>
+                            <div class="text-4xl mb-2">🏜️</div>
                             <div class="text-sm font-black text-white uppercase">Map A</div>
-                            <div class="text-[10px] text-slate-400 mt-1">Đường đi thẳng</div>
+                            <div class="text-[10px] text-slate-400 mt-1">Sa Mạc - Đường thẳng</div>
                         </button>
                         <button onclick="selectMap('B')" id="map-btn-B" class="map-btn bg-slate-800 border-2 border-slate-700 hover:border-yellow-500 p-4 rounded-xl transition-all press-effect">
-                            <div class="text-4xl mb-2">🗺️</div>
+                            <div class="text-4xl mb-2">🌲</div>
                             <div class="text-sm font-black text-white uppercase">Map B</div>
-                            <div class="text-[10px] text-slate-400 mt-1">Đường đi zigzag</div>
+                            <div class="text-[10px] text-slate-400 mt-1">Rừng - Đường zigzag</div>
                         </button>
                     </div>
                 </div>
@@ -1250,7 +1319,7 @@
                 <!-- Difficulty Selection -->
                 <div class="mb-6">
                     <h3 class="text-lg font-black text-white uppercase mb-3">Chọn Độ Khó</h3>
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-3 gap-4">
                         <button onclick="selectDifficulty('easy')" id="diff-btn-easy" class="diff-btn bg-slate-800 border-2 border-slate-700 hover:border-green-500 p-4 rounded-xl transition-all press-effect">
                             <div class="text-4xl mb-2">😊</div>
                             <div class="text-sm font-black text-green-400 uppercase">Dễ</div>
@@ -1261,12 +1330,41 @@
                             <div class="text-sm font-black text-red-400 uppercase">Khó</div>
                             <div class="text-[10px] text-slate-400 mt-1">3 Boss (Wave 10,20,30)</div>
                         </button>
+                        <button onclick="selectDifficulty('infiniti')" id="diff-btn-infiniti" class="diff-btn bg-slate-800 border-2 border-slate-700 hover:border-purple-500 p-4 rounded-xl transition-all press-effect">
+                            <div class="text-4xl mb-2">♾️</div>
+                            <div class="text-sm font-black text-purple-400 uppercase">Infiniti</div>
+                            <div class="text-[10px] text-slate-400 mt-1">Vô hạn - 200K/wave</div>
+                        </button>
                     </div>
                 </div>
 
                 <!-- Start Button -->
-                <button onclick="startTDWithSelection()" id="btn-start-td" class="w-full py-4 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-slate-950 font-black rounded-xl uppercase text-sm press-effect shadow-lg disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                <button onclick="openTDElementSelection()" id="btn-start-td" class="w-full py-4 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-slate-950 font-black rounded-xl uppercase text-sm press-effect shadow-lg disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                     BẮT ĐẦU CHIẾN ĐẤU
+                </button>
+            </div>
+        </div>
+
+        <!-- ELEMENT SELECTION MODAL FOR TD -->
+        <div id="td-element-selection-modal" class="hidden fixed inset-0 z-[95] modal-bg flex items-center justify-center p-6">
+            <div class="bg-slate-900 border-2 border-blue-500 p-8 rounded-[2rem] max-w-4xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-black text-blue-500 italic uppercase">Chọn 6 Nguyên Tố</h2>
+                    <button onclick="closeTDElementSelection()" class="text-slate-400 hover:text-white text-2xl">✕</button>
+                </div>
+
+                <div class="mb-4 text-center">
+                    <span class="text-sm font-black text-slate-400">Đã chọn: <span id="selected-count" class="text-blue-400">0</span>/6</span>
+                </div>
+
+                <!-- Element Grid -->
+                <div id="td-element-grid" class="grid grid-cols-4 sm:grid-cols-6 gap-3 mb-6">
+                    <!-- Elements will be rendered here -->
+                </div>
+
+                <!-- Start Button -->
+                <button onclick="confirmTDElementSelection()" id="btn-confirm-elements" class="w-full py-4 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-400 hover:to-purple-400 text-white font-black rounded-xl uppercase text-sm press-effect shadow-lg disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    XÁC NHẬN VÀ BẮT ĐẦU
                 </button>
             </div>
         </div>
@@ -1353,6 +1451,9 @@
                 </div>
 
                 <div class="mt-3 pt-3 border-t border-slate-800 flex flex-col gap-2">
+                    <button id="td-btn-out" onclick="quitInfinitiMode()" class="hidden w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-black rounded-xl uppercase text-xs press-effect tracking-widest shadow-[0_0_15px_rgba(147,51,234,0.4)]">
+                        OUT & NHẬN TIỀN
+                    </button>
                     <button id="td-btn-startwave" onclick="startTDWave()" class="w-full py-3 bg-red-600 hover:bg-red-500 text-white font-black rounded-xl uppercase text-xs press-effect tracking-widest shadow-[0_0_15px_rgba(220,38,38,0.4)]">
                         GỌI QUÁI (START)
                     </button>
@@ -1798,14 +1899,15 @@
         ];
 
         const TD_STATS = {
-            BASIC:     { cost: 10,  dmg: 5,   range: 100, cd: 60 },
-            NATURAL:   { cost: 25,  dmg: 15,  range: 120, cd: 55 },
-            RARE:      { cost: 50,  dmg: 40,  range: 140, cd: 50 },
-            MYSTIC:    { cost: 100, dmg: 100, range: 160, cd: 40 },
-            LEGENDARY: { cost: 300, dmg: 350, range: 180, cd: 35 },
+            BASIC:     { cost: 50, dmg: 50, range: 100, cd: 60 },
+            COMMON:    { cost: 100, dmg: 100, range: 120, cd: 50 },
+            UNCOMMON:  { cost: 200, dmg: 200, range: 140, cd: 45 },
+            RARE:      { cost: 400, dmg: 400, range: 160, cd: 40 },
+            EPIC:      { cost: 600, dmg: 600, range: 180, cd: 35 },
+            LEGENDARY: { cost: 800, dmg: 1000, range: 220, cd: 30 },
             MYTHIC:    { cost: 800, dmg: 1000, range: 220, cd: 30 },
             GODLY:     { cost: 2500, dmg: 4000, range: 350, cd: 20 },
-            LIMITED:   { cost: 4000, dmg: 0, range: 100, cd: 999 },
+            LIMITED:   { cost: 300, dmg: 0, range: 100, cd: 999 },
             ULTIMATE:  { cost: 8000, dmg: 15000, range: 500, cd: 15 } 
         };
 
@@ -3035,6 +3137,13 @@ let merchantStock = []; // Current merchant stock
         setInterval(updateShopRestockTimer, 1000);
         setInterval(updateLuckyPotionTimer, 1000);
 
+        // UPDATE3: 3M money every 10 minutes with x2 lucky
+        setInterval(() => {
+            balance += 3000000;
+            showNotif("UPDATE3: +3,000,000$ (10 phút)", "💰");
+            updateStats(); saveToLocal();
+        }, 600000); // 10 minutes = 600,000 ms
+
         window.adminGiveAll = () => {
             ELEMENT_POOL.forEach(el => {
                 const existingIdx = inventory.findIndex(i => i.name === el.name);
@@ -3409,12 +3518,28 @@ let merchantStock = []; // Current merchant stock
                         reason = "MERCHANT: \"Ta cần Quỷ và 200,000,000$ tiền mặt! Không bớt!\"";
                     }
                 } else if (botTradeItem.name === "Quỷ") {
-                    if (userTradeItem && userTradeItem.name === "Tinh Tú" && uMoney >= 150000000) {
-                        botWillAccept = true; reason = "PRO: \"Tinh Tú + 150M$ đổi Quỷ à? Chốt kèo luôn bạn ơi!\"";
+                    // If user trades any ULTIMATE item for Quỷ, accept without conditions
+                    if (userTradeItem && RARITIES[userTradeItem.rarity]?.priority >= RARITIES['ULTIMATE'].priority) {
+                        if (uVal >= bp) {
+                            botWillAccept = true;
+                            reason = "PRO: \"ULTIMATE đổi Quỷ? Không cần điều kiện, chốt kèo luôn!\"";
+                        } else {
+                            reason = "PRO: \"ULTIMATE đổi Quỷ? Giá trị chưa đủ, nhưng không cần điều kiện!\"";
+                        }
+                    } else if (userTradeItem && userTradeItem.name === "Tinh Tú") {
+                        // Tinh Tú GODLY or lower requires 150M money
+                        if (uMoney >= 150000000 && uVal >= bp) {
+                            botWillAccept = true;
+                            reason = "PRO: \"Tinh Tú + 150M$ đổi Quỷ à? Chốt kèo luôn bạn ơi!\"";
+                        } else if (uMoney >= 150000000) {
+                            reason = "PRO: \"Tinh Tú + 150M$ đổi Quỷ à? Chốt kèo luôn bạn ơi!\"";
+                        } else {
+                            reason = "PRO: \"Quỷ hiếm lắm, phải đưa Tinh Tú GODLY/ULTIMATE hoặc Tinh Tú + 150,000,000$ đây mới đổi!\"";
+                        }
                     } else if (!userTradeItem && uMoney > 0) {
                         reason = "PRO: \"Quỷ hiếm lắm, phải đưa Tinh Tú và 150,000,000$ đây mới đổi!\"";
                     } else {
-                        reason = "PRO: \"Ta chỉ đổi Quỷ lấy Tinh Tú kèm 150,000,000$ tiền mặt!\"";
+                        reason = "PRO: \"Ta chỉ đổi Quỷ lấy Tinh Tú kèm 150,000,000$ tiền mặt hoặc ULTIMATE không điều kiện!\"";
                     }
                 } else if (activeBot.type === 'pro' && botTradeItem.rarity === 'GODLY') {
                     if (userTradeItem && RARITIES[userTradeItem.rarity]?.priority >= RARITIES['GODLY'].priority) {
@@ -3746,7 +3871,13 @@ let merchantStock = []; // Current merchant stock
             sparkleLayer.innerHTML = '';
             document.getElementById('congrats-icon').innerText = item.icon;
             document.getElementById('congrats-name').innerText = item.name;
-            document.getElementById('congrats-name').style.color = item.rarity === 'ULTIMATE' ? 'transparent' : rarityData.color;
+            if (item.rarity === 'ULTIMATE') {
+                document.getElementById('congrats-name').className = 'text-3xl font-black mb-2 leading-tight text-rainbow';
+                document.getElementById('congrats-name').style.color = '';
+            } else {
+                document.getElementById('congrats-name').className = 'text-3xl font-black mb-2 leading-tight';
+                document.getElementById('congrats-name').style.color = rarityData.color;
+            }
             document.getElementById('congrats-price').innerText = (item.displayPrice || item.price.toLocaleString() + '$');
             
             // Update drop chance display with comma formatting
@@ -3782,15 +3913,30 @@ let merchantStock = []; // Current merchant stock
             
             // Reset animation classes first
             card.classList.remove('scale-50', 'opacity-0');
-            card.className = `bg-slate-900 p-8 rounded-[2.5rem] max-w-sm w-full text-center border-4 transform transition-all shadow-2xl relative overflow-hidden scale-100 opacity-100 ${getVFXClass(item.name)}`;
-            
+            card.className = `bg-slate-900 p-8 rounded-[2.5rem] max-w-sm w-full text-center border-4 transform transition-all shadow-2xl relative overflow-hidden scale-100 opacity-100 ${getVFXClass(item.name)} ${item.rarity === 'ULTIMATE' ? 'ultimate-border-rainbow' : ''}`;
+
             if (!getVFXClass(item.name)) {
-                if (item.rarity === 'GODLY' || item.rarity === 'ULTIMATE') {
+                if (item.rarity === 'ULTIMATE') {
+                    card.classList.add('rarity-glow-ultimate');
+                    for(let i=0; i<12; i++) {
+                        const s = document.createElement('div');
+                        s.className = 'absolute w-2 h-2 bg-white rounded-full';
+                        s.style.left = Math.random() * 100 + '%';
+                        s.style.top = Math.random() * 100 + '%';
+                        s.style.animation = `sparkle ${0.5 + Math.random() * 0.5}s ease-in-out infinite`;
+                        s.style.animationDelay = Math.random() * 2 + 's';
+                        s.style.boxShadow = '0 0 10px #fff, 0 0 20px #ff00ff, 0 0 30px #00ffff';
+                        sparkleLayer.appendChild(s);
+                    }
+                } else if (item.rarity === 'GODLY') {
                     card.classList.add('rarity-glow-godly');
                     for(let i=0; i<12; i++) {
                         const s = document.createElement('div');
-                        s.className = 'sparkle'; s.style.left = Math.random() * 100 + '%'; s.style.top = Math.random() * 100 + '%';
-                        s.style.animationDelay = Math.random() * 2 + 's'; s.style.width = Math.random() * 6 + 2 + 'px'; s.style.height = s.style.width;
+                        s.className = 'absolute w-2 h-2 bg-white rounded-full';
+                        s.style.left = Math.random() * 100 + '%';
+                        s.style.top = Math.random() * 100 + '%';
+                        s.style.animation = `sparkle ${0.5 + Math.random() * 0.5}s ease-in-out infinite`;
+                        s.style.animationDelay = Math.random() * 2 + 's';
                         sparkleLayer.appendChild(s);
                     }
                 }
@@ -4410,6 +4556,85 @@ let merchantStock = []; // Current merchant stock
 
         let tdPathPoints = tdPathPointsA;
         let selectedTDItem = null, activeTowerToUpgrade = null;
+        let selectedTDElements = []; // Store selected elements for TD (max 6)
+
+        // Element Selection Functions for TD
+        window.openTDElementSelection = () => {
+            document.getElementById('td-selection-modal').classList.add('hidden');
+            document.getElementById('td-element-selection-modal').classList.remove('hidden');
+            selectedTDElements = [];
+            renderTDElementGrid();
+            updateTDElementCount();
+        };
+
+        window.closeTDElementSelection = () => {
+            document.getElementById('td-element-selection-modal').classList.add('hidden');
+            document.getElementById('td-selection-modal').classList.remove('hidden');
+            selectedTDElements = [];
+        };
+
+        window.toggleTDElement = (item) => {
+            const index = selectedTDElements.findIndex(e => e.name === item.name);
+            if (index > -1) {
+                selectedTDElements.splice(index, 1);
+            } else {
+                if (selectedTDElements.length >= 6) {
+                    showNotif("TỐI ĐA 6 NGUYÊN TỐ!", "⚠️");
+                    return;
+                }
+                selectedTDElements.push(item);
+            }
+            renderTDElementGrid();
+            updateTDElementCount();
+        };
+
+        window.confirmTDElementSelection = () => {
+            if (selectedTDElements.length !== 6) {
+                showNotif("VUI LÒNG CHỌN ĐÚNG 6 NGUYÊN TỐ!", "⚠️");
+                return;
+            }
+            document.getElementById('td-element-selection-modal').classList.add('hidden');
+            startTDWithSelection();
+        };
+
+        const renderTDElementGrid = () => {
+            const grid = document.getElementById('td-element-grid');
+            grid.innerHTML = '';
+            
+            const uniqueOwned = [], seen = new Set();
+            inventory.forEach(item => { 
+                if(!item.isPack && !seen.has(item.name) && item.type !== 'consumable' && item.name !== 'Lucky Potion') { 
+                    seen.add(item.name); uniqueOwned.push(item); 
+                } 
+            });
+
+            if(uniqueOwned.length === 0) { 
+                grid.innerHTML = `<div class="col-span-full text-center text-slate-500 text-xs mt-4">Bạn chưa sở hữu nguyên tố nào. Hãy quay hòm để nhận!</div>`; 
+                return; 
+            }
+
+            uniqueOwned.sort((a,b) => (RARITIES[b.rarity]?.priority || 0) - (RARITIES[a.rarity]?.priority || 0));
+
+            uniqueOwned.forEach(item => {
+                const isSelected = selectedTDElements.some(e => e.name === item.name);
+                const div = document.createElement('div');
+                div.className = `p-3 rounded-xl cursor-pointer transition-all press-effect border-2 ${isSelected ? 'border-blue-500 bg-blue-500/20' : 'border-slate-700 bg-slate-800 hover:border-slate-600'}`;
+                div.innerHTML = `
+                    <div class="flex flex-col items-center gap-1">
+                        <div class="text-3xl">${item.icon}</div>
+                        <span class="text-[9px] font-black uppercase ${getRarityTextClass(item.rarity)}" style="${getRarityStyle(item.rarity)}">${item.name}</span>
+                        ${isSelected ? '<div class="text-[8px] text-blue-400 font-black">✓ Đã chọn</div>' : ''}
+                    </div>
+                `;
+                div.onclick = () => toggleTDElement(item);
+                grid.appendChild(div);
+            });
+        };
+
+        const updateTDElementCount = () => {
+            document.getElementById('selected-count').innerText = selectedTDElements.length;
+            document.getElementById('btn-confirm-elements').disabled = selectedTDElements.length !== 6;
+        };
 
         // Map & Difficulty Selection Functions
         window.selectMap = (map) => {
@@ -4437,6 +4662,26 @@ let merchantStock = []; // Current merchant stock
             }
         };
 
+        window.quitInfinitiMode = () => {
+            if (selectedDifficulty !== 'infiniti') return;
+            const reward = tdWave * 200000;
+            document.getElementById('infiniti-reward-amount').innerText = reward.toLocaleString();
+            document.getElementById('infiniti-wave-count').innerText = tdWave;
+            document.getElementById('infiniti-reward-modal').classList.remove('hidden');
+        };
+
+        window.confirmInfinitiReward = () => {
+            const reward = tdWave * 200000;
+            balance += reward;
+            showNotif(`ĐÃ NHẬN ${reward.toLocaleString()}$ TỪ ${tdWave} WAVE!`, "💰");
+            updateStats(); saveToLocal(); closeTD();
+            document.getElementById('infiniti-reward-modal').classList.add('hidden');
+        };
+
+        window.cancelInfinitiReward = () => {
+            document.getElementById('infiniti-reward-modal').classList.add('hidden');
+        };
+
         window.closeTDSelection = () => {
             document.getElementById('td-selection-modal').classList.add('hidden');
             selectedMap = 'A';
@@ -4456,7 +4701,7 @@ let merchantStock = []; // Current merchant stock
             tdPathPoints = selectedMap === 'A' ? tdPathPointsA : tdPathPointsB;
             
             // Set max waves based on difficulty
-            tdMaxWave = selectedDifficulty === 'easy' ? 20 : 30;
+            tdMaxWave = selectedDifficulty === 'easy' ? 20 : (selectedDifficulty === 'hard' ? 30 : Infinity);
             
             // Close selection modal and open TD
             document.getElementById('td-selection-modal').classList.add('hidden');
@@ -4471,7 +4716,17 @@ let merchantStock = []; // Current merchant stock
             tdGameLoop = requestAnimationFrame(updateTDGame); 
         };
 
-        window.openTD = () => { 
+        window.openGameSelection = () => {
+            document.getElementById('game-selection-modal').classList.remove('hidden');
+        };
+
+        window.closeGameSelection = () => {
+            document.getElementById('game-selection-modal').classList.add('hidden');
+        };
+
+        window.openTD = () => {
+            // Close game selection modal
+            document.getElementById('game-selection-modal').classList.add('hidden');
             // Show selection modal instead of directly opening TD
             document.getElementById('td-selection-modal').classList.remove('hidden');
             // Reset selections - require user to actually click
@@ -4481,7 +4736,16 @@ let merchantStock = []; // Current merchant stock
             document.querySelectorAll('.diff-btn').forEach(btn => btn.classList.remove('selected'));
             document.getElementById('btn-start-td').disabled = true;
         };
-        window.closeTD = () => { tdActive = false; cancelAnimationFrame(tdGameLoop); document.getElementById('td-modal').classList.add('hidden'); };
+        window.closeTD = () => {
+            // Calculate reward for INFINITI mode
+            if (selectedDifficulty === 'infiniti' && tdWave > 0) {
+                const reward = tdWave * 200000;
+                balance += reward;
+                showNotif(`ĐÃ NHẬN ${reward.toLocaleString()}$ TỪ ${tdWave} WAVE!`, "💰");
+                updateStats(); saveToLocal();
+            }
+            tdActive = false; cancelAnimationFrame(tdGameLoop); document.getElementById('td-modal').classList.add('hidden');
+        };
 
         const resetTDGame = () => {
             tdHp = 100; tdWave = 1; tdMoney = 100; tdEnemies = []; tdTowers = []; tdProjectiles = []; tdParticles = []; waveActive = false; updateTDUI();
@@ -4492,14 +4756,34 @@ let merchantStock = []; // Current merchant stock
         const updateTDUI = () => {
             document.getElementById('td-hp-text').innerText = `${tdHp}/${tdMaxHp}`;
             document.getElementById('td-hp-bar').style.width = `${Math.max(0, (tdHp/tdMaxHp)*100)}%`;
-            document.getElementById('td-wave-text').innerHTML = `WAVE ${tdWave}<span class="text-sm text-slate-500">/${tdMaxWave}</span>`;
+            const maxWaveDisplay = selectedDifficulty === 'infiniti' ? '∞' : tdMaxWave;
+            document.getElementById('td-wave-text').innerHTML = `WAVE ${tdWave}<span class="text-sm text-slate-500">/${maxWaveDisplay}</span>`;
             document.getElementById('td-money-text').innerText = tdMoney;
+
+            // Show/hide OUT button for INFINITI mode
+            const outBtn = document.getElementById('td-btn-out');
+            if (selectedDifficulty === 'infiniti') {
+                outBtn.classList.remove('hidden');
+            } else {
+                outBtn.classList.add('hidden');
+            }
         };
 
         const renderTDShop = () => {
             const list = document.getElementById('td-shop-list'); list.innerHTML = '';
+
+            // Only show selected elements (max 6)
+            if (selectedTDElements.length === 0) {
+                list.innerHTML = `<div class="text-center text-slate-500 text-xs mt-4">Không có nguyên tố nào được chọn!</div>`; 
+                return;
+            }
+
             const uniqueOwned = [], seen = new Set();
-            inventory.forEach(item => { if(!item.isPack && !seen.has(item.name) && item.type !== 'consumable' && item.name !== 'Lucky Potion') { seen.add(item.name); uniqueOwned.push(item); } });
+            selectedTDElements.forEach(item => { 
+                if(!seen.has(item.name)) { 
+                    seen.add(item.name); uniqueOwned.push(item); 
+                } 
+            });
 
             if(uniqueOwned.length === 0) { list.innerHTML = `<div class="text-center text-slate-500 text-xs mt-4">Bạn chưa sở hữu nguyên tố nào. Hãy quay hòm để nhận!</div>`; return; }
 
@@ -4557,8 +4841,19 @@ let merchantStock = []; // Current merchant stock
         };
 
         const getUpgradeCost = (tower) => {
+            // ULTIMATE rarity has fixed upgrade costs
+            if(tower.rarity === 'ULTIMATE') {
+                if(tower.level === 0) return 6000;
+                if(tower.level === 1) return 7000;
+                if(tower.level === 2) return 8000;
+                return 0;
+            }
+            // Other rarities use base cost multipliers
             const baseCost = TD_STATS[tower.rarity].cost;
-            if(tower.level === 0) return Math.floor(baseCost * 1.5); if(tower.level === 1) return Math.floor(baseCost * 2.5); if(tower.level === 2) return Math.floor(baseCost * 4.0); return 0;
+            if(tower.level === 0) return Math.floor(baseCost * 1.5);
+            if(tower.level === 1) return Math.floor(baseCost * 2.5);
+            if(tower.level === 2) return Math.floor(baseCost * 4.0);
+            return 0;
         };
 
         window.sellSelectedTower = () => {
@@ -4588,6 +4883,10 @@ let merchantStock = []; // Current merchant stock
             if(clickedTower) { openUpgradePanel(clickedTower); return; }
             if(!selectedTDItem) return;
             if(tdPathPoints.some(p => p.x === gridX && p.y === gridY)) { showNotif("KHÔNG ĐƯỢC XÂY TRÊN ĐƯỜNG", "⚠️"); return; }
+
+            // Limit tower placement: max 4 of each element type
+            const towerCount = tdTowers.filter(t => t.name === selectedTDItem.name).length;
+            if(towerCount >= 4) { showNotif("TỐI ĐA 4 THÁP CÙNG LOẠI!", "⚠️"); return; }
 
             if(tdMoney >= selectedTDItem.cost) {
                 tdMoney -= selectedTDItem.cost;
@@ -4623,30 +4922,35 @@ let merchantStock = []; // Current merchant stock
                 spawnTimer++;
                 if(spawnTimer > 40 - Math.min(tdWave, 20)) {
                     if (selectedDifficulty === 'easy') {
-                        // Easy mode: bosses at wave 10 (5k HP) and wave 20 (20k HP)
+                        // Easy mode: boss at wave 10 (5k HP) and wave 30 (2M HP)
                         if (tdWave === 10) {
                             tdEnemies.push({ x: tdPathPoints[0].x * TD_CELL + TD_CELL/2, y: tdPathPoints[0].y * TD_CELL + TD_CELL/2, pathIdx: 0, hp: 5000, maxHp: 5000, speed: 0.6, reward: 25000, isBoss: true, freezeCooldown: 0, color: '#eab308', radius: 20 });
-                        } else if (tdWave === 20) {
-                            tdEnemies.push({ x: tdPathPoints[0].x * TD_CELL + TD_CELL/2, y: tdPathPoints[0].y * TD_CELL + TD_CELL/2, pathIdx: 0, hp: 20000, maxHp: 20000, speed: 0.5, reward: 50000, isBoss: true, freezeCooldown: 0, color: '#ef4444', radius: 25, isFinalBoss: true });
+                        } else if (tdWave === 30) {
+                            tdEnemies.push({ x: tdPathPoints[0].x * TD_CELL + TD_CELL/2, y: tdPathPoints[0].y * TD_CELL + TD_CELL/2, pathIdx: 0, hp: 2000000, maxHp: 2000000, speed: 0.5, reward: 50000, isBoss: true, freezeCooldown: 0, color: '#ef4444', radius: 25, isFinalBoss: true });
                         } else {
                             let baseHp = 20 + tdWave * 15 + Math.pow(tdWave, 2) * 5;
                             tdEnemies.push({ x: tdPathPoints[0].x * TD_CELL + TD_CELL/2, y: tdPathPoints[0].y * TD_CELL + TD_CELL/2, pathIdx: 0, hp: baseHp, maxHp: baseHp, speed: 1.5 + (tdWave * 0.05), reward: 100, isBoss: false, color: '#ef4444', radius: 10, poisoned: 0, poisonDmg: 0 });
                         }
                     } else {
-                        // Hard mode: 3 bosses at waves 10, 20, 30
+                        // Hard mode: bosses at waves 10 and 30 only
                         if (tdWave === 10) {
                             // Boss at wave 10 with 12k HP
                             tdEnemies.push({ x: tdPathPoints[0].x * TD_CELL + TD_CELL/2, y: tdPathPoints[0].y * TD_CELL + TD_CELL/2, pathIdx: 0, hp: 12000, maxHp: 12000, speed: 0.6, reward: 25000, isBoss: true, freezeCooldown: 0, color: '#eab308', radius: 20 });
-                        } else if (tdWave === 20) {
-                            // Boss at wave 20 with 15k HP
-                            tdEnemies.push({ x: tdPathPoints[0].x * TD_CELL + TD_CELL/2, y: tdPathPoints[0].y * TD_CELL + TD_CELL/2, pathIdx: 0, hp: 15000, maxHp: 15000, speed: 0.5, reward: 50000, isBoss: true, freezeCooldown: 0, color: '#ef4444', radius: 25 });
                         } else if (tdWave === 30) {
-                            // Final boss at wave 30 with 1 million HP
-                            tdEnemies.push({ x: tdPathPoints[0].x * TD_CELL + TD_CELL/2, y: tdPathPoints[0].y * TD_CELL + TD_CELL/2, pathIdx: 0, hp: 1000000, maxHp: 1000000, speed: 0.4, reward: 500000, isBoss: true, freezeCooldown: 0, color: '#a855f7', radius: 30, isFinalBoss: true });
+                            // Final boss at wave 30 with 100M HP
+                            tdEnemies.push({ x: tdPathPoints[0].x * TD_CELL + TD_CELL/2, y: tdPathPoints[0].y * TD_CELL + TD_CELL/2, pathIdx: 0, hp: 100000000, maxHp: 100000000, speed: 0.4, reward: 500000, isBoss: true, freezeCooldown: 0, color: '#a855f7', radius: 30, isFinalBoss: true });
                         } else {
                             let baseHp = 20 + tdWave * 15 + Math.pow(tdWave, 2) * 5;
                             tdEnemies.push({ x: tdPathPoints[0].x * TD_CELL + TD_CELL/2, y: tdPathPoints[0].y * TD_CELL + TD_CELL/2, pathIdx: 0, hp: baseHp, maxHp: baseHp, speed: 1.5 + (tdWave * 0.05), reward: 100, isBoss: false, color: '#ef4444', radius: 10, poisoned: 0, poisonDmg: 0 });
                         }
+                    }
+                } else if (selectedDifficulty === 'infiniti') {
+                    // Infiniti mode: boss every 30 waves with 100M HP
+                    if (tdWave % 30 === 0) {
+                        tdEnemies.push({ x: tdPathPoints[0].x * TD_CELL + TD_CELL/2, y: tdPathPoints[0].y * TD_CELL + TD_CELL/2, pathIdx: 0, hp: 100000000, maxHp: 100000000, speed: 0.4, reward: 500000, isBoss: true, freezeCooldown: 0, color: '#a855f7', radius: 30, isFinalBoss: true });
+                    } else {
+                        let baseHp = 20 + tdWave * 15 + Math.pow(tdWave, 2) * 5;
+                        tdEnemies.push({ x: tdPathPoints[0].x * TD_CELL + TD_CELL/2, y: tdPathPoints[0].y * TD_CELL + TD_CELL/2, pathIdx: 0, hp: baseHp, maxHp: baseHp, speed: 1.5 + (tdWave * 0.05), reward: 100, isBoss: false, color: '#ef4444', radius: 10, poisoned: 0, poisonDmg: 0 });
                     }
                     enemiesToSpawn--; spawnTimer = 0;
                 }
@@ -4674,6 +4978,15 @@ let merchantStock = []; // Current merchant stock
                     if (e.hp <= 0) {
                         tdMoney += e.reward; tdEnemies.splice(i, 1); updateTDUI();
                         continue;
+                    }
+                }
+
+                // Handle slow effect from Ma Trận
+                if (e.slowTimer && e.slowTimer > 0) {
+                    e.slowTimer--;
+                    if (e.slowTimer <= 0) {
+                        e.speed *= 2; // Restore speed
+                        delete e.slowTimer;
                     }
                 }
 
@@ -4709,10 +5022,23 @@ let merchantStock = []; // Current merchant stock
 
                     if(target) {
                         let isAcid = (t.name === "Phóng xạ" && t.level >= 2);
+                        
+                        // Ma Trận skill: slow 5 enemies behind when shooting
+                        if (t.name === "Ma Trận") {
+                            const targetIndex = tdEnemies.indexOf(target);
+                            if (targetIndex !== -1) {
+                                // Slow 5 enemies behind the target
+                                for (let j = targetIndex + 1; j < Math.min(targetIndex + 6, tdEnemies.length); j++) {
+                                    tdEnemies[j].speed *= 0.5; // Slow down by 50%
+                                    tdEnemies[j].slowTimer = 180; // 3 seconds at 60fps
+                                }
+                            }
+                        }
+                        
                         if (t.name === "Quỷ" && t.level >= 3) {
                             for(let i=0; i<5; i++) tdProjectiles.push({ x: t.x + (Math.random()*20-10), y: t.y + (Math.random()*20-10), target: target, dmg: t.dmg * 0.4, speed: 4 + Math.random()*2, color: '#a855f7', isMinion: true, wobble: Math.random() * Math.PI * 2 });
                         } else {
-                            tdProjectiles.push({ x: t.x, y: t.y, target: target, dmg: t.dmg, speed: 8, color: isAcid ? '#22c55e' : (t.name === "Quỷ" ? '#a855f7' : (RARITIES[t.rarity] ? RARITIES[t.rarity].color : '#fff')), isMinion: false, isAcid: isAcid });
+                            tdProjectiles.push({ x: t.x, y: t.y, target: target, dmg: t.dmg, speed: 8, color: isAcid ? '#22c55e' : (t.name === "Quỷ" ? '#a855f7' : (t.name === "Ma Trận" ? '#60a5fa' : (RARITIES[t.rarity] ? RARITIES[t.rarity].color : '#fff'))), isMinion: false, isAcid: isAcid });
                         }
                         t.cooldownTimer = t.cd;
                     }
@@ -4768,10 +5094,10 @@ let merchantStock = []; // Current merchant stock
                 }
 
                 let summerTotalBuff = 0;
-                tdTowers.forEach(t => { if (t.name === "Summer2026 Limited") summerTotalBuff += (200 + t.level * 100); });
+                tdTowers.forEach(t => { if (t.name === "Summer2026 Limited") summerTotalBuff += (500 + t.level * 500); });
                 if (summerTotalBuff > 0) { tdMoney += summerTotalBuff; showNotif(`BUFF MÙA HÈ: +${summerTotalBuff}$`, "🏝️"); }
 
-                if(tdWave === tdMaxWave) {
+                if(tdWave === tdMaxWave && selectedDifficulty !== 'infiniti') {
                     balance += selectedDifficulty === 'easy' ? 5000000 : 10000000;
                     tdWins++;
                     updateStats(); saveToLocal(); closeTD();
@@ -4868,15 +5194,90 @@ let merchantStock = []; // Current merchant stock
         
         const drawTDGame = () => {
             tdCtx.clearRect(0, 0, tdCanvas.width, tdCanvas.height);
-            tdCtx.fillStyle = '#1e293b'; tdPathPoints.forEach(p => tdCtx.fillRect(p.x * TD_CELL, p.y * TD_CELL, TD_CELL, TD_CELL));
-            tdCtx.strokeStyle = '#334155'; tdCtx.lineWidth = 1; tdPathPoints.forEach(p => tdCtx.strokeRect(p.x * TD_CELL, p.y * TD_CELL, TD_CELL, TD_CELL));
+
+            // Draw themed background based on selected map
+            if (selectedMap === 'A') {
+                // Desert theme - warm sandy colors
+                tdCtx.fillStyle = '#d4a574'; tdCtx.fillRect(0, 0, tdCanvas.width, tdCanvas.height);
+                tdCtx.fillStyle = '#c9956c'; tdPathPoints.forEach(p => tdCtx.fillRect(p.x * TD_CELL, p.y * TD_CELL, TD_CELL, TD_CELL));
+                tdCtx.strokeStyle = '#a67c52'; tdCtx.lineWidth = 1; tdPathPoints.forEach(p => tdCtx.strokeRect(p.x * TD_CELL, p.y * TD_CELL, TD_CELL, TD_CELL));
+
+                // Draw cacti and desert details
+                tdCtx.font = "20px Arial";
+                // Cacti positions (avoiding path)
+                const cactusPositions = [
+                    {x: 2, y: 1}, {x: 5, y: 2}, {x: 9, y: 1}, {x: 14, y: 2},
+                    {x: 1, y: 6}, {x: 4, y: 7}, {x: 10, y: 6}, {x: 15, y: 7},
+                    {x: 3, y: 10}, {x: 7, y: 11}, {x: 12, y: 10}
+                ];
+                cactusPositions.forEach(pos => {
+                    if (!tdPathPoints.some(p => p.x === pos.x && p.y === pos.y)) {
+                        tdCtx.fillText("🌵", pos.x * TD_CELL + TD_CELL/2, pos.y * TD_CELL + TD_CELL/2);
+                    }
+                });
+
+                // Rocks
+                const rockPositions = [
+                    {x: 3, y: 5}, {x: 8, y: 4}, {x: 13, y: 5},
+                    {x: 2, y: 8}, {x: 11, y: 9}, {x: 14, y: 11}
+                ];
+                tdCtx.font = "16px Arial";
+                rockPositions.forEach(pos => {
+                    if (!tdPathPoints.some(p => p.x === pos.x && p.y === pos.y)) {
+                        tdCtx.fillText("🪨", pos.x * TD_CELL + TD_CELL/2, pos.y * TD_CELL + TD_CELL/2);
+                    }
+                });
+            } else {
+                // Forest theme - green colors
+                tdCtx.fillStyle = '#2d5a27'; tdCtx.fillRect(0, 0, tdCanvas.width, tdCanvas.height);
+                tdCtx.fillStyle = '#3d6b37'; tdPathPoints.forEach(p => tdCtx.fillRect(p.x * TD_CELL, p.y * TD_CELL, TD_CELL, TD_CELL));
+                tdCtx.strokeStyle = '#4a7c42'; tdCtx.lineWidth = 1; tdPathPoints.forEach(p => tdCtx.strokeRect(p.x * TD_CELL, p.y * TD_CELL, TD_CELL, TD_CELL));
+
+                // Draw trees and forest details
+                tdCtx.font = "22px Arial";
+                // Tree positions (avoiding path)
+                const treePositions = [
+                    {x: 1, y: 2}, {x: 4, y: 3}, {x: 9, y: 2}, {x: 13, y: 3},
+                    {x: 2, y: 6}, {x: 6, y: 7}, {x: 11, y: 6}, {x: 15, y: 7},
+                    {x: 3, y: 10}, {x: 8, y: 11}, {x: 13, y: 10}
+                ];
+                treePositions.forEach(pos => {
+                    if (!tdPathPoints.some(p => p.x === pos.x && p.y === pos.y)) {
+                        tdCtx.fillText("🌲", pos.x * TD_CELL + TD_CELL/2, pos.y * TD_CELL + TD_CELL/2);
+                    }
+                });
+
+                // Bushes
+                const bushPositions = [
+                    {x: 3, y: 4}, {x: 7, y: 5}, {x: 12, y: 4},
+                    {x: 1, y: 8}, {x: 10, y: 9}, {x: 14, y: 11}
+                ];
+                tdCtx.font = "18px Arial";
+                bushPositions.forEach(pos => {
+                    if (!tdPathPoints.some(p => p.x === pos.x && p.y === pos.y)) {
+                        tdCtx.fillText("🌿", pos.x * TD_CELL + TD_CELL/2, pos.y * TD_CELL + TD_CELL/2);
+                    }
+                });
+
+                // Flowers
+                const flowerPositions = [
+                    {x: 5, y: 1}, {x: 10, y: 3}, {x: 14, y: 5},
+                    {x: 2, y: 9}, {x: 7, y: 10}, {x: 12, y: 11}
+                ];
+                tdCtx.font = "14px Arial";
+                flowerPositions.forEach(pos => {
+                    if (!tdPathPoints.some(p => p.x === pos.x && p.y === pos.y)) {
+                        tdCtx.fillText("🌸", pos.x * TD_CELL + TD_CELL/2, pos.y * TD_CELL + TD_CELL/2);
+                    }
+                });
+            }
 
             let lastP = tdPathPoints[tdPathPoints.length-1];
             tdCtx.fillStyle = '#ef4444'; tdCtx.font = "30px Arial"; tdCtx.textAlign = "center"; tdCtx.textBaseline = "middle"; tdCtx.fillText("🏰", lastP.x * TD_CELL + TD_CELL/2, lastP.y * TD_CELL + TD_CELL/2);
 
             tdCtx.font = "24px Arial";
             tdTowers.forEach(t => {
-                tdCtx.fillStyle = '#0f172a'; tdCtx.beginPath(); tdCtx.arc(t.x, t.y, TD_CELL/2 - 2, 0, Math.PI*2); tdCtx.fill();
+                tdCtx.fillStyle = selectedMap === 'A' ? '#8b4513' : '#1a3a1a'; tdCtx.beginPath(); tdCtx.arc(t.x, t.y, TD_CELL/2 - 2, 0, Math.PI*2); tdCtx.fill();
                 tdCtx.strokeStyle = RARITIES[t.rarity] ? RARITIES[t.rarity].color : '#fff'; tdCtx.lineWidth = 2; tdCtx.stroke();
                 
                 if(selectedTDItem && selectedTDItem.name === t.name) { tdCtx.beginPath(); tdCtx.arc(t.x, t.y, t.range, 0, Math.PI*2); tdCtx.fillStyle = (RARITIES[t.rarity] ? RARITIES[t.rarity].color : '#fff') + '11'; tdCtx.fill(); }
